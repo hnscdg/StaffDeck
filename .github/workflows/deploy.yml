@@ -59,11 +59,10 @@ jobs:
       - name: 镜像冒烟检查
         run: |
           set -eux
-          mkdir -p /tmp/smoke-data
           docker run -d --name smoke \
             -e STAFFDECK_HEADLESS=true \
             -e ULTRARAG_DATA_DIR=/data \
-            -v /tmp/smoke-data:/data \
+            -v smoke-data:/data \
             -p 15173:5173 \
             "${{ env.IMAGE }}:sha-${{ github.sha }}"
           for i in $(seq 1 24); do
@@ -77,7 +76,7 @@ jobs:
 
       - name: 清理冒烟容器
         if: always()
-        run: docker rm -f smoke || true
+        run: docker rm -f smoke || true; docker volume rm -f smoke-data || true
 
   deploy:
     needs: build
@@ -105,7 +104,8 @@ jobs:
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
 
             echo "=== 2. 备份数据 ==="
-            mkdir -p backup
+            mkdir -p backup data
+            sudo chown -R 10001:10001 data
             if [ -d data ]; then
               tar czf "backup/data-$(date +%F-%H%M%S).tgz" -C /opt/staffdeck data
             fi
