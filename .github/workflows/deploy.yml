@@ -1,0 +1,131 @@
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: "构建完成后是否推送到服务器"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/staffdeck
+
+jobs:
+  verify:
+    uses: ./.github/workflows/oss-checks.yml
+
+  build:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    outputs:
+      image: ${{ steps.vars.outputs.image }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - id: vars
+        run: echo "image=${IMAGE}:sha-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: app
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:sha-${{ github.sha }}
+            ${{ env.IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: 镜像冒烟检查
+        run: |
+          set -eux
+          mkdir -p /tmp/smoke-data
+          docker run -d --name smoke \
+            -e STAFFDECK_HEADLESS=true \
+            -e ULTRARAG_DATA_DIR=/data \
+            -v /tmp/smoke-data:/data \
+            -p 15173:5173 \
+            "${{ env.IMAGE }}:sha-${{ github.sha }}"
+          for i in $(seq 1 24); do
+            if curl -fsS http://127.0.0.1:15173/api/health; then
+              echo "health ok"; exit 0
+            fi
+            sleep 5
+          done
+          echo "容器日志："; docker logs smoke --tail 100
+          exit 1
+
+      - name: 清理冒烟容器
+        if: always()
+        run: docker rm -f smoke || true
+
+  deploy:
+    needs: build
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    steps:
+      - name: 推送到服务器
+        uses: appleboy/ssh-action@v1
+        env:
+          IMAGE_REF: ${{ needs.build.outputs.image }}
+          GHCR_USER: ${{ github.repository_owner }}
+          GHCR_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          envs: IMAGE_REF,GHCR_USER,GHCR_TOKEN
+          script: |
+            set -euo pipefail
+            cd /opt/staffdeck
+
+            echo "=== 1. 登录 GHCR ==="
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+
+            echo "=== 2. 备份数据 ==="
+            mkdir -p backup
+            if [ -d data ]; then
+              tar czf "backup/data-$(date +%F-%H%M%S).tgz" -C /opt/staffdeck data
+            fi
+            PREV_IMAGE="$(grep -E '^STAFFDECK_IMAGE=' .env | cut -d= -f2- || true)"
+
+            echo "=== 3. 切换镜像 ==="
+            sed -i "s|^STAFFDECK_IMAGE=.*|STAFFDECK_IMAGE=${IMAGE_REF}|" .env
+            docker compose -f compose.prod.yaml pull staffdeck
+            docker compose -f compose.prod.yaml up -d --wait --wait-timeout 180 staffdeck
+
+            echo "=== 4. 健康检查 ==="
+            if curl -fsS --retry 10 --retry-delay 5 --retry-connrefused http://127.0.0.1:5173/api/health; then
+              echo "部署成功：${IMAGE_REF}"
+              docker image prune -f
+            else
+              echo "健康检查失败，回滚到 ${PREV_IMAGE}"
+              docker logs staffdeck --tail 120 || true
+              if [ -n "$PREV_IMAGE" ]; then
+                sed -i "s|^STAFFDECK_IMAGE=.*|STAFFDECK_IMAGE=${PREV_IMAGE}|" .env
+                docker compose -f compose.prod.yaml up -d --wait --wait-timeout 180 staffdeck
+              fi
+              exit 1
+            fi
