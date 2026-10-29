@@ -19,7 +19,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  IMAGE: ghcr.io/${{ github.repository_owner }}/staffdeck
+  REGISTRY: ${{ vars.IMAGE_REGISTRY }}
+  IMAGE: ${{ vars.IMAGE_REGISTRY }}/${{ vars.IMAGE_NAMESPACE }}/staffdeck
 
 jobs:
   verify:
@@ -27,6 +28,7 @@ jobs:
 
   build:
     needs: verify
+    if: vars.IMAGE_REGISTRY != ''
     runs-on: ubuntu-latest
     timeout-minutes: 120
     outputs:
@@ -41,9 +43,9 @@ jobs:
 
       - uses: docker/login-action@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
 
       - uses: docker/build-push-action@v6
         with:
@@ -89,19 +91,20 @@ jobs:
         uses: appleboy/ssh-action@v1
         env:
           IMAGE_REF: ${{ needs.build.outputs.image }}
-          GHCR_USER: ${{ github.repository_owner }}
-          GHCR_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
+          REGISTRY: ${{ vars.IMAGE_REGISTRY }}
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
-          envs: IMAGE_REF,GHCR_USER,GHCR_TOKEN
+          envs: IMAGE_REF,REGISTRY,REGISTRY_USERNAME,REGISTRY_PASSWORD
           script: |
             set -euo pipefail
             cd /opt/staffdeck
 
-            echo "=== 1. 登录 GHCR ==="
-            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+            echo "=== 1. 登录镜像仓库 ${REGISTRY} ==="
+            echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY" -u "$REGISTRY_USERNAME" --password-stdin
 
             echo "=== 2. 备份数据 ==="
             mkdir -p backup data
