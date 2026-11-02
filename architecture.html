@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>StaffDeck 系统架构图</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  body {
+    margin: 0;
+    padding: 24px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #f8f9fa;
+    color: #1a1a2e;
+  }
+  h1 {
+    text-align: center;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .subtitle {
+    text-align: center;
+    color: #6b7280;
+    font-size: 14px;
+    margin-bottom: 32px;
+  }
+  .mermaid {
+    display: flex;
+    justify-content: center;
+  }
+  .legend {
+    max-width: 960px;
+    margin: 32px auto 0;
+    padding: 20px 24px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .legend h3 {
+    margin: 0 0 12px;
+    font-size: 15px;
+  }
+  .legend-item {
+    display: inline-block;
+    margin: 4px 16px 4px 0;
+    font-size: 13px;
+  }
+  .legend-dot {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+</style>
+</head>
+<body>
+
+<h1>StaffDeck 系统架构</h1>
+<p class="subtitle">企业级数字员工平台 · Python FastAPI + TypeScript Harness v3 引擎</p>
+
+<div class="mermaid">
+flowchart TB
+    %% ============ 样式定义 ============
+    classDef access fill:#e0e7ff,stroke:#6366f1,stroke-width:2px,color:#1e1b4b
+    classDef frontend fill:#dbeafe,stroke:#3b82f6,stroke-width:2px,color:#1e3a8a
+    classDef gateway fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#78350f
+    classDef core fill:#dcfce7,stroke:#22c55e,stroke-width:2px,color:#14532d
+    classDef harness fill:#fae8ff,stroke:#c026d3,stroke-width:2px,color:#581c87
+    classDef data fill:#fee2e2,stroke:#ef4444,stroke-width:2px,color:#7f1d1d
+    classDef external fill:#f3f4f6,stroke:#9ca3af,stroke-width:2px,color:#374151
+
+    %% ============ 接入层 ============
+    subgraph A["🖥️ 接入层 Access Layer"]
+        direction LR
+        A1["桌面客户端<br>macOS / Win / Linux<br>PyInstaller 打包"]:::access
+        A2["Web 浏览器<br>admin / user 控制台"]:::access
+        A3["IM 渠道<br>微信 / 企微 / 飞书 / 钉钉"]:::access
+        A4["CLI<br>staffdeck serve / chat"]:::access
+        A5["Public API<br>Server-to-Server"]:::access
+    end
+
+    %% ============ 前端层 ============
+    subgraph F["🎨 前端层 Frontend · React 18 + Vite"]
+        direction TB
+        F1["frontend-enterprise/<br>React / TS / Tailwind CSS 4"]:::frontend
+        F2["Harness Engine UI 客户端包<br>ui-chat · ui-session · ui-tool<br>ui-plan · ui-permission · ui-sidebar ..."]:::frontend
+    end
+
+    %% ============ 网关 ============
+    subgraph G["⚡ 网关 & 服务层 Gateway"]
+        direction TB
+        G1["FastAPI 单端口服务<br>静态资源 + REST API + Swagger<br>port 5173"]:::gateway
+    end
+
+    %% ============ 后端核心 ============
+    subgraph B["🧠 后端核心 · Python FastAPI · backend/app/"]
+        direction TB
+
+        subgraph BAPI["API 路由层"]
+            direction LR
+            B1["api/*<br>内部 REST"]:::core
+            B2["public_api/*<br>对外开放 v1"]:::core
+        end
+
+        subgraph BCORE["Agent 核心引擎 core/"]
+            direction LR
+            BC1["turn_planner<br>回合规划"]:::core
+            BC2["turn_coordinator<br>执行协调"]:::core
+            BC3["turn_finalizer<br>收尾回复"]:::core
+            BC4["router<br>意图路由"]:::core
+            BC5["agent_loop<br>Harness v2/v3 运行时"]:::core
+        end
+
+        subgraph BFEAT["能力模块"]
+            direction LR
+            BF1["llm/<br>OpenAI / Anthropic<br>Gemini 适配"]:::core
+            BF2["tools/<br>MCP · HTTP · A2A"]:::core
+            BF3["knowledge/<br>文档结构检索<br>引用溯源"]:::core
+            BF4["skills/<br>SOP 状态机<br>通用技能"]:::core
+            BF5["teams/<br>多 Agent 协作"]:::core
+        end
+
+        subgraph BINF["基础设施"]
+            direction LR
+            BI1["channels/adapters/<br>微信 · 企微 · 飞书 · 钉钉"]:::core
+            BI2["security/<br>权限 · 加密 · 租户"]:::core
+            BI3["session/<br>会话管理"]:::core
+            BI4["scheduled_tasks/<br>定时 Worker"]:::core
+            BI5["feedback + memory/<br>反馈闭环 · 长期记忆"]:::core
+            BI6["harness/ + capabilities/<br>Harness v3 桥接"]:::core
+        end
+    end
+
+    %% ============ Harness v3 引擎 ============
+    subgraph H["⚙️ Harness v3 引擎 · TypeScript Monorepo · harness-engine/"]
+        direction TB
+        H1["pnpm workspace · 50+ 包"]:::harness
+        H2["core · session · context · llm<br>sandbox · skill · tool · mcp<br>sdk · storage · terminal"]:::harness
+        H3["client/* UI 组件库<br>ui-chat · ui-tool · ui-plan<br>ui-session · ui-permission ..."]:::harness
+    end
+
+    %% ============ 数据层 ============
+    subgraph D["💾 数据层 Data Layer"]
+        direction LR
+        D1["SQLite<br>SQLModel / SQLAlchemy<br>Tenant · User · Agent<br>Session · Message · SOP"]:::data
+        D2["文件存储<br>附件 · 知识库文档<br>技能脚本"]:::data
+    end
+
+    %% ============ 外部 ============
+    subgraph E["🌐 外部依赖"]
+        direction LR
+        E1["OpenAI / Anthropic<br>/ Gemini / DeepSeek<br>LLM API"]:::external
+        E2["MCP Servers<br>外部工具"]:::external
+        E3["A2a Codex<br>远程 Agent"]:::external
+    end
+
+    %% ============ 连接关系 ============
+    A --> F
+    A --> G1
+    F --> G1
+
+    G1 --> BAPI
+
+    BAPI --> BCORE
+    BCORE --> BFEAT
+    BFEAT --> BINF
+
+    BINF --> H
+
+    BCORE --> D
+    BFEAT --> D
+
+    BF1 --> E1
+    BF2 --> E2
+    BF2 --> E3
+    BI1 --> A3
+
+    H --> D
+    H --> E1
+</div>
+
+<div class="legend">
+  <h3>图例 Legend</h3>
+  <span class="legend-item"><span class="legend-dot" style="background:#e0e7ff; border:1px solid #6366f1"></span>接入层 Access</span>
+  <span class="legend-item"><span class="legend-dot" style="background:#dbeafe; border:1px solid #3b82f6"></span>前端 Frontend</span>
+  <span class="legend-item"><span class="legend-dot" style="background:#fef3c7; border:1px solid #f59e0b"></span>网关 Gateway</span>
+  <span class="legend-item"><span class="legend-dot" style="background:#dcfce7; border:1px solid #22c55e"></span>后端核心 Backend Core</span>
+  <span class="legend-item"><span class="legend-dot" style="background:#fae8ff; border:1px solid #c026d3"></span>Harness v3 引擎</span>
+  <span class="legend-item"><span class="legend-dot" style="background:#fee2e2; border:1px solid #ef4444"></span>数据层 Data</span>
+  <span class="legend-item"><span class="legend-dot" style="background:#f3f4f6; border:1px solid #9ca3af"></span>外部 External</span>
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'default',
+    flowchart: {
+      htmlLabels: true,
+      curve: 'basis',
+      padding: 16,
+      nodeSpacing: 30,
+      rankSpacing: 50
+    }
+  });
+</script>
+
+</body>
+</html>
