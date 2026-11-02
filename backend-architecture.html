@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>StaffDeck 后端架构可视化文档</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 40px 24px;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(135deg, #fdf4ff 0%, #eff6ff 50%, #f0fdf4 100%);
+    color: #1e293b; line-height: 1.6;
+  }
+  .wrap { max-width: 1240px; margin: 0 auto; }
+  .cover { text-align: center; padding: 60px 20px 40px; }
+  .cover h1 {
+    font-size: 44px; font-weight: 800; margin: 0 0 12px; letter-spacing: 2px;
+    background: linear-gradient(90deg, #6366f1, #06b6d4, #10b981);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .cover .sub { color: #64748b; font-size: 16px; }
+  .cover .meta {
+    margin-top: 20px; display: inline-flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+    font-size: 13px; color: #475569;
+  }
+  .cover .meta span {
+    background: white; padding: 6px 14px; border-radius: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+
+  section {
+    background: white; border-radius: 20px; padding: 32px 36px; margin-bottom: 28px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.04);
+  }
+  h2 {
+    font-size: 24px; font-weight: 800; margin: 0 0 20px; padding-bottom: 12px;
+    border-bottom: 3px solid #f0f9ff; display: flex; align-items: center; gap: 10px;
+  }
+  h2 .badge {
+    background: #06b6d4; color: white; font-size: 12px; padding: 3px 10px;
+    border-radius: 12px; font-weight: 600;
+  }
+  h3 { font-size: 16px; font-weight: 700; margin: 24px 0 12px; color: #334155; }
+
+  .stats {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 14px; margin-bottom: 20px;
+  }
+  .stat {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 14px; padding: 16px 18px; border: 1px solid rgba(0,0,0,0.04);
+  }
+  .stat .num { font-size: 28px; font-weight: 800; color: #06b6d4; }
+  .stat .lbl { font-size: 12px; color: #64748b; margin-top: 4px; }
+
+  .mmd-box {
+    background: #fafbfc; border-radius: 12px; padding: 20px;
+    border: 1px solid #f1f5f9; margin: 16px 0; overflow-x: auto;
+  }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 16px; }
+  .three-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 16px; }
+  .col-card {
+    background: #fafbfc; border-radius: 14px; padding: 20px; border: 1px solid #f1f5f9;
+  }
+  .col-card h4 {
+    margin: 0 0 12px; font-size: 15px; font-weight: 800; color: #06b6d4;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .col-card h4::before {
+    content: ""; display: inline-block; width: 4px; height: 16px;
+    background: #06b6d4; border-radius: 2px;
+  }
+  @media (max-width: 768px) {
+    .two-col, .three-col { grid-template-columns: 1fr; }
+    section { padding: 20px; }
+  }
+
+  table.routes {
+    width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 14px;
+    font-family: "SF Mono", "JetBrains Mono", Consolas, monospace;
+  }
+  table.routes th {
+    background: linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%);
+    padding: 9px 12px; text-align: left; font-weight: 700; color: #0e7490;
+  }
+  table.routes th:first-child { border-radius: 10px 0 0 0; }
+  table.routes th:last-child { border-radius: 0 10px 0 0; }
+  table.routes td {
+    padding: 8px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: top;
+  }
+  table.routes tr:last-child td { border-bottom: none; }
+  table.routes tr:hover td { background: #fafdff; }
+  table.routes tr.group td {
+    background: linear-gradient(90deg, #f0f9ff, #f8fafc);
+    font-weight: 700; color: #0f172a; border-bottom: 1px solid #cbd5e1;
+    font-family: inherit;
+  }
+  .verb {
+    display: inline-block; padding: 1px 8px; border-radius: 4px; font-weight: 800;
+    font-size: 11px; letter-spacing: 0.5px;
+  }
+  .v-GET { background: #dcfce7; color: #15803d; }
+  .v-POST { background: #dbeafe; color: #1d4ed8; }
+  .v-PUT { background: #fef3c7; color: #b45309; }
+  .v-DELETE { background: #fee2e2; color: #b91c1c; }
+  .v-PATCH { background: #fae8ff; color: #c026d3; }
+
+  .tag {
+    font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600;
+    font-family: inherit;
+  }
+  .t-module { background: #e0f2fe; color: #0369a1; }
+  .t-policy { background: #fef9c3; color: #854d0e; }
+  .t-stream { background: #dcfce7; color: #166534; }
+  .t-sse { background: #fae8ff; color: #9333ea; }
+  .t-admin { background: #fee2e2; color: #b91c1c; }
+
+  .tree {
+    font-family: "SF Mono", "JetBrains Mono", Consolas, monospace;
+    font-size: 12.5px; line-height: 1.8; background: #fafbfc;
+    padding: 20px 24px; border-radius: 12px; border: 1px solid #f1f5f9;
+    overflow-x: auto; white-space: pre; color: #475569;
+  }
+  .tree .dir { color: #06b6d4; font-weight: 700; }
+  .tree .api { color: #6366f1; }
+  .tree .mod { color: #10b981; }
+  .tree .key { color: #db2777; }
+
+  .tech-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px; margin-top: 16px;
+  }
+  .tech-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px 18px;
+  }
+  .tech-card .t-name { font-weight: 800; font-size: 14px; color: #1e293b; margin-bottom: 4px; }
+  .tech-card .t-ver { font-size: 11px; color: #06b6d4; font-weight: 600; }
+  .tech-card .t-use { font-size: 12px; color: #64748b; margin-top: 6px; }
+
+  .er-group {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 14px; margin-top: 16px;
+  }
+  .er-card {
+    background: linear-gradient(135deg, #f0f9ff, #fdf4ff);
+    border: 1px solid #e0f2fe; border-radius: 12px; padding: 16px 18px;
+  }
+  .er-card .er-title { font-weight: 800; color: #0e7490; font-size: 13px; margin-bottom: 8px; }
+  .er-card ul { margin: 0; padding-left: 18px; font-size: 12px; color: #475569; }
+  .er-card li { margin: 3px 0; }
+  .er-card li em { color: #6366f1; font-style: normal; font-family: "SF Mono", monospace; font-size: 11px; }
+
+  .pipeline-step {
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    background: #fafbfc; border-radius: 12px; padding: 16px; margin-top: 14px;
+    border: 1px solid #f1f5f9;
+  }
+  .pstep {
+    background: linear-gradient(135deg, #06b6d4, #6366f1); color: white;
+    padding: 10px 14px; border-radius: 10px; font-weight: 700; font-size: 13px;
+    min-width: 120px; text-align: center; box-shadow: 0 2px 8px rgba(99,102,241,0.2);
+  }
+  .parrow { font-size: 22px; color: #94a3b8; }
+
+  .module-policy-list {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 10px; margin-top: 14px;
+  }
+  .mp-item {
+    background: #fef9c3; border: 1px solid #fde68a; border-radius: 10px;
+    padding: 10px 14px; font-size: 12px; color: #854d0e; font-family: "SF Mono", monospace;
+  }
+
+  footer {
+    text-align: center; padding: 40px 0 20px; color: #94a3b8; font-size: 12px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Cover -->
+  <div class="cover">
+    <h1>StaffDeck 后端架构</h1>
+    <div class="sub">Python 3.11 · FastAPI · SQLModel SQLite · Harness v2/v3 · SSE Streaming</div>
+    <div class="meta">
+      <span>FastAPI Single-Port</span>
+      <span>SQLModel + SQLite</span>
+      <span>75 张数据库表</span>
+      <span>24 API 模块</span>
+      <span>100+ 路由端点</span>
+      <span>6 渠道适配器</span>
+      <span>Harness v2/v3 双引擎</span>
+    </div>
+  </div>
+
+  <!-- 0. 技术栈 -->
+  <section>
+    <h2><span class="badge">0</span> 技术栈 &amp; 规模</h2>
+    <div class="stats">
+      <div class="stat"><div class="num">75</div><div class="lbl">SQLModel 数据实体</div></div>
+      <div class="stat"><div class="num">24</div><div class="lbl">api/*.py 路由模块</div></div>
+      <div class="stat"><div class="num">40+</div><div class="lbl">include_router 挂载</div></div>
+      <div class="stat"><div class="num">100+</div><div class="lbl">HTTP 路由端点</div></div>
+      <div class="stat"><div class="num">4</div><div class="lbl">LLM Protocol Drivers</div></div>
+      <div class="stat"><div class="num">6</div><div class="lbl">渠道适配器</div></div>
+      <div class="stat"><div class="num">172</div><div class="lbl">backend/tests</div></div>
+      <div class="stat"><div class="num">2</div><div class="lbl">Harness 引擎 (v2/v3)</div></div>
+    </div>
+
+    <div class="tech-grid">
+      <div class="tech-card"><div class="t-name">🐍 Python</div><div class="t-ver">3.11+</div><div class="t-use">类型注解 + asyncio + async/await 全链路</div></div>
+      <div class="tech-card"><div class="t-name">⚡ FastAPI</div><div class="t-ver">latest</div><div class="t-use">单端口服务（main.py + single_port_app.py）；Swagger 自动生成</div></div>
+      <div class="tech-card"><div class="t-name">🗄️ SQLModel</div><div class="t-ver">SQLModel + SQLAlchemy</div><div class="t-use">SQLite 嵌入式存储；75 张表；JSON 列；复合索引</div></div>
+      <div class="tech-card"><div class="t-name">📡 SSE Streaming</div><div class="t-use">/api/chat POST /stream 长连接；StreamingResponse；idle timeout 心跳</div></div>
+      <div class="tech-card"><div class="t-name">🤝 四 LLM 协议驱动</div><div class="t-use">ChatCompletions / OpenAIResponses / AnthropicMessages / GeminiGenerateContent</div></div>
+      <div class="tech-card"><div class="t-name">🔐 cryptography</div><div class="t-ver">≥42,<49</div><div class="t-use">渠道消息 AES-GCM 加密；API Key HMAC 签名</div></div>
+      <div class="tech-card"><div class="t-name">📦 packaging</div><div class="t-use">PyInstaller 打包 macOS/Windows/Linux 桌面端</div></div>
+      <div class="tech-card"><div class="t-name">🧪 pytest + ruff</div><div class="t-use">pytest 后端测试；ruff check（100 字符 / Py3.11 target）</div></div>
+    </div>
+  </section>
+
+  <!-- 1. 分层架构 -->
+  <section>
+    <h2><span class="badge">1</span> 七层服务分层架构</h2>
+
+    <div class="mmd-box">
+<pre class="mermaid">
+flowchart TB
+  subgraph L7["⑦ 外部系统"]
+    L7A["LLM APIs<br>OpenAI / Anthropic / Gemini / DeepSeek"]
+    L7B["MCP Servers<br>外部工具协议"]
+    L7C["Codex A2a<br>Agent-to-Agent"]
+  end
+
+  subgraph L6["⑥ 数据层 · SQLite"]
+    L6A["SQLModel 75 tables"]
+    L6B["idempotency<br>API 幂等记录"]
+    L6C["attachments<br>会话附件存储"]
+  end
+
+  subgraph L5["⑤ Harness 引擎 · app/harness/"]
+    L5A["executor.py<br>执行器"]
+    L5B["sandbox.py<br>沙盒"]
+    L5C["skill_script.py<br>技能脚本"]
+    L5D["registry.py<br>技能注册表"]
+  end
+
+  subgraph L4["④ 核心 Agent 引擎 · app/core/"]
+    direction TB
+    L4R["router.py 意图路由"]
+    L4P["turn_planner.py 回合规划"]
+    L4C["turn_coordinator.py 能力编排"]
+    L4H["harness_agent.py Harness 执行"]
+    L4F["turn_finalizer.py 收尾"]
+    L4R --> L4P --> L4C --> L4H --> L4F
+  end
+
+  subgraph L3["③ 能力模块层"]
+    L3A["app/llm/<br>LLM Client + 4 Protocol Drivers"]
+    L3B["app/tools/<br>HTTP/MCP/A2a 工具"]
+    L3C["app/knowledge/<br>结构感知检索"]
+    L3D["app/skills/ + general_skills/<br>SOP 状态机"]
+    L3E["app/scheduled_tasks/<br>定时 Worker"]
+    L3F["app/teams/<br>多 Agent 协作"]
+  end
+
+  subgraph L2["② 业务域路由 · app/api/"]
+    L2A["chat.py · agents.py • sessions.py"]
+    L2B["skills.py · knowledge_bases.py · tools.py"]
+    L2C["channels.py · teams.py · scheduled_tasks.py"]
+    L2D["auth.py · model_configs.py · evolution.py"]
+  end
+
+  subgraph L1["① 接入层"]
+    L1A["frontend-enterprise<br>React 控制台"]
+    L1B["IM 渠道<br>微信/企微/飞书/钉钉"]
+    L1C["Public API<br>Server-to-Server REST"]
+    L1D["CLI + 桌面端"]
+  end
+
+  L1 --> L2 --> L3 --> L4 --> L5 --> L6
+  L4 --> L7
+  L3 --> L7
+
+  style L7 fill:#f3f4f6,stroke:#9ca3af,stroke-width:2px
+  style L6 fill:#fdf4ff,stroke:#c026d3,stroke-width:2px
+  style L5 fill:#ecfeff,stroke:#06b6d4,stroke-width:2px
+  style L4 fill:#dcfce7,stroke:#10b981,stroke-width:2px
+  style L3 fill:#fef3c7,stroke:#f59e0b,stroke-width:2px
+  style L2 fill:#e0e7ff,stroke:#6366f1,stroke-width:2px
+  style L1 fill:#fce7f3,stroke:#ec4899,stroke-width:2px
+</pre>
+    </div>
+
+    <div class="two-col">
+      <div class="col-card">
+        <h4>Turn Pipeline 五阶段</h4>
+        <div class="pipeline-step">
+          <div class="pstep">🧭 Router</div><span class="parrow">→</span>
+          <div class="pstep">📋 Planner</div><span class="parrow">→</span>
+          <div class="pstep">🎛️ Coordinator</div><span class="parrow">→</span>
+          <div class="pstep">🤖 HarnessAgent</div><span class="parrow">→</span>
+          <div class="pstep">✨ Finalizer</div>
+        </div>
+        <div style="margin-top:10px;font-size:12px;color:#64748b;line-height:1.7">
+          <b>Router</b>（router.py）解析意图 → 选择 Agent<br>
+          <b>Planner</b>（turn_planner.py）调用 LLM 生成 Turn Plan JSON Schema<br>
+          <b>Coordinator</b>（turn_coordinator.py）编排 Knowledge / Skill / Tool / Team 调用<br>
+          <b>HarnessAgent</b>（harness_agent.py）桥接到 Harness v3 引擎执行 step loop<br>
+          <b>Finalizer</b>（turn_finalizer.py）生成最终回复 + 持久化 + 反馈钩子
+        </div>
+      </div>
+      <div class="col-card">
+        <h4>双引擎共存 · Harness v2 vs v3</h4>
+        <div style="font-size:12px;color:#475569;line-height:1.8">
+          <b>Harness v2</b>（harness_v2_engine.py）：纯 Python 实现，legacy 路径，step_agent.py 驱动<br>
+          <b>Harness v3</b>（harness_agent.py）：TypeScript 引擎通过 MCP/HTTP 桥接，app/harness/ 下 Python 包装层<br>
+          <b>Capability Contract</b>（app/capabilities/contracts.py）是两层的唯一通信边界：<br>
+          <span style="font-family:monospace;color:#db2777">CapabilityContext + Input/Output JSON Schema</span>
+        </div>
+        <h4 style="margin-top:14px">LLM 四协议驱动</h4>
+        <div style="font-size:12px;color:#475569;line-height:1.8">
+          • ChatCompletionsDriver（OpenAI）<br>
+          • OpenAIResponsesDriver（新 Responses API）<br>
+          • AnthropicMessagesDriver（claude）<br>
+          • GeminiGenerateContentDriver（Google）<br>
+          ✅ driver 自动协商最匹配的协议；同一 ModelConfig 绑定一个 driver
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. API 路由表 -->
+  <section>
+    <h2><span class="badge">2</span> API 路由表 · <code style="font-family:monospace;color:#06b6d4">main.py include_router</code></h2>
+    <div style="font-size:12px;color:#64748b;margin-bottom:10px">
+      所有路由在 <code>main.py</code> 中以 <code>app.include_router(xxx.router, dependencies=[Depends(module_policy(...))])</code> 形式挂载；
+      <code>/api/</code> 前缀在 FastAPI 应用级别统一设置；同时对外暴露 <code>/public/v1/</code>（见 §2.2 Public API）。
+    </div>
+
+    <table class="routes">
+      <thead><tr>
+        <th style="width:14%">模块</th>
+        <th style="width:10%">策略</th>
+        <th style="width:76%">挂载端点（HTTP 方法 + 路径）</th>
+      </tr></thead>
+      <tbody>
+        <tr class="group"><td colspan="3">🔐 认证 &amp; 基础配置</td></tr>
+        <tr><td>auth.router</td><td><span class="tag t-module">无策略</span></td><td><span class="verb v-POST">POST</span> /auth/login · <span class="verb v-GET">GET</span> /auth/me · <span class="verb v-PUT">PUT</span> /auth/password</td></tr>
+        <tr><td>ui_config.chat_router</td><td><span class="tag t-module">无策略</span></td><td><span class="verb v-GET">GET</span> /ui-config（聊天域只读）</td></tr>
+        <tr><td>ui_config.enterprise_router</td><td><span class="tag t-admin">admin</span></td><td><span class="verb v-GET">GET</span> /ui-config · <span class="verb v-PUT">PUT</span> /ui-config</td></tr>
+        <tr><td>persona.router</td><td><span class="tag t-admin">admin</span></td><td><span class="verb v-GET">GET</span> /persona · <span class="verb v-PUT">PUT</span> /persona</td></tr>
+        <tr><td>app_updates.router</td><td><span class="tag t-module">无策略</span></td><td><span class="verb v-GET">GET</span> /app-updates/version</td></tr>
+
+        <tr class="group"><td colspan="3">💬 Chat 域</td></tr>
+        <tr><td>chat.router</td><td><span class="tag t-module">无策略</span></td><td>
+          <span class="verb v-POST">POST</span> /chat/turn · <span class="verb v-POST">POST</span> /chat/stream <span class="tag t-sse">SSE</span> ·
+          <span class="verb v-POST">POST</span> /chat/attachments · <span class="verb v-GET">GET</span> /chat/slash-commands ·
+          <span class="verb v-POST">POST</span> /sessions · <span class="verb v-GET">GET</span> /sessions · <span class="verb v-GET">GET</span> /sessions/{id} · <span class="verb v-PUT">PUT</span> /sessions/{id} · <span class="verb v-DELETE">DELETE</span> /sessions/{id} ·
+          <span class="verb v-GET">GET</span> /sessions/{id}/messages · <span class="verb v-GET">GET</span> /sessions/{id}/artifacts/{task_frame_id} ·
+          <span class="verb v-GET">GET</span> /sessions/{id}/events <span class="tag t-sse">SSE</span> ·
+          <span class="verb v-GET">GET</span> /sessions/{id}/trace · <span class="verb v-GET">GET</span> /sessions/{id}/spans ·
+          <span class="verb v-POST">POST</span> /sessions/{id}/cancel ·
+          <span class="verb v-POST">POST</span> /sessions/{id}/handoffs · <span class="verb v-GET">GET</span> /handoffs · <span class="verb v-POST">POST</span> /handoffs/{id}/reply ·
+          <span class="verb v-POST">POST</span> /messages/{id}/feedback · <span class="verb v-DELETE">DELETE</span> /messages/{id}/feedback
+        </td></tr>
+        <tr><td>agents.chat_router</td><td><span class="tag t-module">无策略</span></td><td><span class="verb v-GET">GET</span> /agents（员工列表） · <span class="verb v-POST">POST</span> /agents/{id}/use（选择某个员工） · <span class="verb v-GET">GET</span> /agents/{id}/avatar/{digest}</td></tr>
+        <tr><td>agents.scope_router</td><td><span class="tag t-module">无策略</span></td><td><span class="verb v-GET">GET</span> /agents/scope（当前用户可访问的员工范围）</td></tr>
+        <tr><td>scheduled_tasks.chat_router</td><td><span class="tag t-module">无策略</span></td><td><span class="verb v-GET">GET</span> 定时任务列表（聊天域只读）</td></tr>
+
+        <tr class="group"><td colspan="3">👥 Agent（数字员工）管理 · agents.enterprise_router</td></tr>
+        <tr><td>agents.enterprise_router</td><td><span class="tag t-policy">agent</span></td><td>
+          <span class="verb v-GET">GET</span> /agents · <span class="verb v-POST">POST</span> /agents ·
+          <span class="verb v-GET">GET</span> /agents/{id} · <span class="verb v-PUT">PUT</span> /agents/{id} · <span class="verb v-DELETE">DELETE</span> /agents/{id} ·
+          <span class="verb v-PUT">PUT</span> /agents/{id}/models · <span class="verb v-GET">GET</span> /agents/{id}/models ·
+          <span class="verb v-GET">GET</span> /agents/{id}/resources · <span class="verb v-PUT">PUT</span> /agents/{id}/resources · <span class="verb v-POST">POST</span> /agents/{id}/resources/import ·
+          <span class="verb v-GET">GET</span> /agents/{id}/skills · <span class="verb v-POST">POST</span> /agents/{id}/skills/{skill_id}/sync-from-overall · <span class="verb v-POST">POST</span> /agents/{id}/skills/{skill_id}/promote-to-overall · <span class="verb v-POST">POST</span> /agents/{id}/skills/{skill_id}/rollback ·
+          <span class="verb v-GET">GET</span> /agents/{id}/skills/{skill_id}/versions ·
+          <span class="verb v-GET">GET</span> /agents/{id}/work-record ·
+          <span class="verb v-POST">POST</span> /agents/{id}/gallery:unpublish
+        </td></tr>
+
+        <tr class="group"><td colspan="3">📚 Knowledge Base · Skills · General Skills</td></tr>
+        <tr><td>knowledge_bases.router</td><td><span class="tag t-policy">knowledge_base</span></td><td><span class="verb v-GET">GET</span> /knowledge-bases · <span class="verb v-POST">POST</span> /knowledge-bases · <span class="verb v-GET">GET</span> /knowledge-bases/{id} · <span class="verb v-PUT">PUT</span> /knowledge-bases/{id} · <span class="verb v-DELETE">DELETE</span> /knowledge-bases/{id}</td></tr>
+        <tr><td>knowledge.router</td><td><span class="tag t-policy">知识搜索放行</span></td><td><span class="verb v-POST">POST</span> /knowledge/search · <span class="verb v-GET">GET</span> /knowledge/documents/{id} · <span class="verb v-GET">GET</span> /knowledge/ingest-jobs/{id}</td></tr>
+        <tr><td>skills.router</td><td><span class="tag t-policy">sop</span></td><td>
+          <span class="verb v-GET">GET</span> /skills · <span class="verb v-POST">POST</span> /skills · <span class="verb v-GET">GET</span> /skills/{id} · <span class="verb v-PUT">PUT</span> /skills/{id} · <span class="verb v-DELETE">DELETE</span> /skills/{id} ·
+          <span class="verb v-POST">POST</span> /skills/{id}/publish · <span class="verb v-POST">POST</span> /skills/{id}/archive · <span class="verb v-POST">POST</span> /skills/{id}/draft ·
+          <span class="verb v-POST">POST</span> /skills/{id}/versions/{version}/rollback · <span class="verb v-POST">POST</span> /skills/files/extract
+        </td></tr>
+        <tr><td>general_skills.router</td><td><span class="tag t-policy">general_skill</span></td><td>
+          <span class="verb v-POST">POST</span> /general-skills/import · <span class="verb v-POST">POST</span> /general-skills/import-skillhub · <span class="verb v-POST">POST</span> /general-skills/import-clawhub · <span class="verb v-POST">POST</span> /general-skills/import-package ·
+          <span class="verb v-GET">GET</span> /general-skills · <span class="verb v-GET">GET</span> /general-skills/{slug} · <span class="verb v-POST">POST</span> /general-skills/{slug}/publish · <span class="verb v-POST">POST</span> /general-skills/{slug}/archive · <span class="verb v-DELETE">DELETE</span> /general-skills/{slug} ·
+          <span class="verb v-POST">POST</span> /general-skills/{slug}/run · <span class="verb v-POST">POST</span> /general-skills/{slug}/run/stream <span class="tag t-sse">SSE</span>
+        </td></tr>
+
+        <tr class="group"><td colspan="3">🛠️ Tools · MCP Server</td></tr>
+        <tr><td>tools.router</td><td><span class="tag t-policy">tool</span></td><td><span class="verb v-GET">GET</span> /tools · <span class="verb v-POST">POST</span> /tools · <span class="verb v-GET">GET</span> /tools/{id} · <span class="verb v-PUT">PUT</span> /tools/{id} · <span class="verb v-DELETE">DELETE</span> /tools/{id} · <span class="verb v-POST">POST</span> /tools/{id}/test · <span class="verb v-POST">POST</span> /tools/{id}/probe</td></tr>
+        <tr><td>tools.mcp_router</td><td><span class="tag t-policy">mcp_server</span></td><td><span class="verb v-GET">GET</span> /mcp-servers · <span class="verb v-POST">POST</span> /mcp-servers · <span class="verb v-GET">GET</span> /mcp-servers/{id} · <span class="verb v-PUT">PUT</span> /mcp-servers/{id} · <span class="verb v-DELETE">DELETE</span> /mcp-servers/{id} · <span class="verb v-POST">POST</span> /mcp-servers/{id}/probe</td></tr>
+
+        <tr class="group"><td colspan="3">👥 Teams · 多 Agent 协作</td></tr>
+        <tr><td>teams.router</td><td><span class="tag t-policy">team</span></td><td><span class="verb v-GET">GET</span> /teams · <span class="verb v-POST">POST</span> /teams · <span class="verb v-GET">GET</span> /teams/{id} · <span class="verb v-PUT">PUT</span> /teams/{id} · <span class="verb v-POST">POST</span> /teams/{id}/chat · <span class="verb v-POST">POST</span> /teams/{id}/tasks</td></tr>
+        <tr><td>teams.threads_router</td><td><span class="tag t-module">无策略</span></td><td>Team 内部 thread 管理端点</td></tr>
+
+        <tr class="group"><td colspan="3">📅 Scheduled Tasks · Memories · Feedback</td></tr>
+        <tr><td>scheduled_tasks.enterprise_router</td><td><span class="tag t-admin">admin</span></td><td><span class="verb v-GET">GET</span> /scheduled-tasks · <span class="verb v-POST">POST</span> /scheduled-tasks · <span class="verb v-GET">GET</span> /scheduled-tasks/{id} · <span class="verb v-PUT">PUT</span> /scheduled-tasks/{id} · <span class="verb v-DELETE">DELETE</span> /scheduled-tasks/{id}</td></tr>
+        <tr><td>memories.router</td><td><span class="tag t-module">无策略</span></td><td><span class="verb v-GET">GET</span> /memories · <span class="verb v-POST">POST</span> /memories · <span class="verb v-DELETE">DELETE</span> /memories/{id}</td></tr>
+        <tr><td>evolution.router</td><td><span class="tag t-admin">admin</span></td><td><span class="verb v-GET">GET</span> /evolution/proposals · <span class="verb v-POST">POST</span> /evolution/proposals · <span class="verb v-POST">POST</span> /evolution/proposals/{id}/accept</td></tr>
+        <tr><td>feedback.router</td><td><span class="tag t-module">无策略</span></td><td><span class="verb v-GET">GET</span> /feedback/summary · <span class="verb v-GET">GET</span> /feedback/sessions · <span class="verb v-GET">GET</span> /feedback/sessions/{id} · <span class="verb v-POST">POST</span> /feedback/{id}/reanalyze</td></tr>
+
+        <tr class="group"><td colspan="3">📡 Channels · 渠道接入</td></tr>
+        <tr><td>channels.router</td><td><span class="tag t-admin">admin</span></td><td>渠道绑定 CRUD：<span class="verb v-GET">GET</span> /channels · <span class="verb v-POST">POST</span> /channels · <span class="verb v-PUT">PUT</span> /channels/{id} · <span class="verb v-DELETE">DELETE</span> /channels/{id} · + WechatSetup/WecomSetup/FeishuSetup/DingTalkSetup 专属端点</td></tr>
+        <tr><td>channel_scope_router</td><td><span class="tag t-module">无策略</span></td><td>渠道内 agent scope 解析</td></tr>
+        <tr><td>wechat_kf.router</td><td><span class="tag t-module">公开回调</span></td><td><span class="verb v-GET">GET</span> /wechat-kf/{binding_id}/callback · <span class="verb v-POST">POST</span> /wechat-kf/{binding_id}/callback</td></tr>
+        <tr><td>external_task_router</td><td><span class="tag t-module">无策略</span></td><td><span class="verb v-GET">GET</span> /external-tasks/{id} · <span class="verb v-POST">POST</span> /external-tasks/{id}/resume-tracking</td></tr>
+        <tr><td>external_callback_router</td><td><span class="tag t-module">公开回调</span></td><td><span class="verb v-POST">POST</span> /external-tasks/{id}/callback</td></tr>
+
+        <tr class="group"><td colspan="3">🔎 Traces · Sessions · Mock</td></tr>
+        <tr><td>sessions.router</td><td><span class="tag t-module">无策略</span></td><td><span class="verb v-GET">GET</span> /sessions（完整列表 + tracing 元数据）</td></tr>
+        <tr><td>traces.router</td><td><span class="tag t-module">无策略</span></td><td>调试/追踪专用端点</td></tr>
+        <tr><td>mock.router</td><td><span class="tag t-module">dev only</span></td><td>MockOrder 订单模拟端点（开发测试用）</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Public API · Server-to-Server REST</h3>
+    <div style="font-size:12px;color:#64748b;margin-bottom:8px">
+      挂载于 <code>/public/v1/</code> 前缀（见 <code>public_api/app.py</code>），使用 <b>API Key</b>（前缀 <code>sk_</code>，Hash 存储）认证 + <b>Idempotency</b> 幂等头保护。
+    </div>
+    <div class="module-policy-list">
+      <div class="mp-item">identity · auth · credentials · credential_profiles</div>
+      <div class="mp-item">agents (list / get / resources / skills)</div>
+      <div class="mp-item">gallery · sessions · runs · jobs</div>
+      <div class="mp-item">sops · resources · webhooks</div>
+      <div class="mp-item">operations · maintenance · examples · runtime</div>
+    </div>
+  </section>
+
+  <!-- 3. 核心模块 -->
+  <section>
+    <h2><span class="badge">3</span> 核心服务模块层级 · <code style="font-family:monospace;color:#06b6d4">backend/app/</code></h2>
+
+    <div class="tree"><span class="dir">backend/app/</span>
+├── <span class="key">main.py</span>                     ← FastAPI 应用入口（include_router 40+）
+├── <span class="key">single_port_app.py</span>        ← 桌面端单端口入口（托管 FastAPI + 静态前端）
+├── <span class="key">config.py</span>                 ← Pydantic Settings（APP_SECRET / DB_PATH / MODEL CONFIG）
+│
+├── <span class="dir">api/</span>                      ← <span class="mod">业务域路由层</span>（24 文件，见 §2）
+├── <span class="dir">public_api/</span>               ← <span class="mod">Server-to-Server REST</span>（agents/credentials/sessions/runs/jobs/sops/webhooks）
+├── <span class="dir">api_enterprise/</span>           ← Projections / ResourceContracts / Compat 兼容层
+│
+├── <span class="dir">core/</span>                     ← <span class="mod">Agent 核心引擎（38 文件）</span>
+│   ├── <span class="key">router.py</span>                  意图路由 → Agent 选择
+│   ├── <span class="key">turn_planner.py</span>             LLM 生成 Turn Plan
+│   ├── <span class="key">turn_coordinator.py</span>        编排 Knowledge/Skill/Tool/Team
+│   ├── <span class="key">harness_agent.py</span>           ← Harness v3 执行桥接
+│   ├── <span class="key">harness_v2_engine.py</span>       ← Harness v2 legacy 路径
+│   ├── <span class="key">turn_finalizer.py</span>           回复生成 + 持久化
+│   ├── <span class="key">step_agent.py</span>               step agent loop
+│   ├── <span class="key">reply_stream.py</span>             StreamingResponse 事件投影
+│   ├── <span class="key">harness_* (10 files)</span>       recovery/lease/lock/turn_store/session_cleanup...
+│   ├── <span class="key">human_handoff_service.py</span>    人类接管
+│   ├── <span class="key">capability_* (3 files)</span>      discovery/manifest/recovery
+│   └── <span class="key">reflection_agent.py</span>         反思/评估 agent
+│
+├── <span class="dir">harness/</span>                  ← <span class="mod">Harness v3 Python 包装层</span>
+│   ├── executor.py  sandbox.py  skill_script.py
+│   ├── contracts.py  errors.py  filesystem.py  registry.py
+│   ├── execution_context.py  artifacts.py  command.py
+│
+├── <span class="dir">llm/</span>                       ← <span class="mod">LLM 适配层</span>
+│   ├── <span class="key">client.py</span>                  统一 LLM 客户端
+│   ├── <span class="key">model_protocols.py</span>          ModelApiProtocol 枚举（4 种协议）
+│   ├── <span class="key">protocol_drivers.py</span>         4 个 ProtocolDriver 实现
+│   ├── <span class="key">prompts/</span> (25 .md files)    system prompt 模板
+│   ├── stage_protocol.py  tool_protocols.py  output_policy.py
+│
+├── <span class="dir">tools/</span>                    ← <span class="mod">工具执行</span>
+│   ├── <span class="key">mcp_client.py</span>              MCP 协议客户端
+│   ├── <span class="key">http_request.py</span>            HTTP 请求工具
+│   ├── <span class="key">a2a_client.py</span>              Agent-to-Agent（Codex）
+│   ├── <span class="key">tool_executor.py</span>            执行编排
+│   ├── external_tasks.py  external_task_dispatch.py  a2a_recovery.py
+│
+├── <span class="dir">knowledge/</span>                ← <span class="mod">知识检索</span>（结构感知 / OKF / 解析器 / 引用）
+├── <span class="dir">skills/</span>                   ← <span class="mod">SOP 状态机</span>（distiller / editor / reflection / nesting / step_ids）
+├── <span class="dir">general_skills/</span>            ← <span class="mod">通用技能</span>（runner / runtime_env / schema）
+├── <span class="dir">teams/</span>                    ← <span class="mod">多 Agent 协作</span>（service / wakeup / sweeper / module_scope）
+├── <span class="dir">scheduled_tasks/</span>           ← <span class="mod">定时任务</span>（worker / service / schema）
+├── <span class="dir">channels/</span>                 ← <span class="mod">IM 渠道接入</span>（25+ 文件）
+│   ├── adapters/           wechat.py · wecom.py · feishu.py · dingtalk.py · wechat_kf.py
+│   ├── crypto.py           AES-GCM 消息加解密
+│   ├── service_*.py        intake / routing / session / identity / inbox / outbox / durable_inbox
+│   ├── feishu_runtime.py   feishu_process.py   dingtalk_runtime.py
+│   └── storage.py          markdown_render.py  media.py
+│
+├── <span class="dir">capabilities/</span>             ← <span class="mod">Capability Contract</span>（contracts.py + 3 JSON Schema）
+├── <span class="dir">security/</span>                 ← <span class="mod">安全</span>（auth.py / encryption.py / permissions.py / tenant.py / api_policy.py / module_policy.py）
+├── <span class="dir">db/</span>                       ← <span class="mod">数据层</span>（75 张表，见 §4）
+├── <span class="dir">session/</span>                  ← Session 生命周期（attachments / message_visibility / slot_policy）
+├── <span class="dir">memory/</span>                   ← 长期记忆（service.py + jobs.py）
+├── <span class="dir">feedback/</span>                 ← 用户反馈闭环（service.py + jobs.py）
+├── <span class="dir">evolution/</span>                 ← SOP 演化（schema.py + service.py）
+├── <span class="dir">agents/</span>                   ← Agent 辅助（branching / schema / summary）
+├── <span class="dir">observability/</span>             ← 可观测性（event_log / session_timings / spans）
+├── <span class="dir">evolution/</span>                ← SOP 演化
+├── <span class="dir">lark_cli/</span>                 ← 飞书 CLI 集成（provision / runner / policy）
+└── <span class="dir">a2a/</span>                      ← Codex A2a 适配（codex_adapter.py）
+</div>
+  </section>
+
+  <!-- 4. 数据模型 -->
+  <section>
+    <h2><span class="badge">4</span> 数据模型 · 75 张 SQLModel 表</h2>
+
+    <div class="three-col">
+      <div class="er-card">
+        <div class="er-title">🔐 租户与认证（6）</div>
+        <ul>
+          <li><em>Tenant</em> — 租户根实体</li>
+          <li><em>User</em> — 用户（tenant_id / role / source / password_hash）</li>
+          <li><em>UserAvatar</em> — data_url 内联头像</li>
+          <li><em>APIClient / APICredential</em> — Server-to-Server 身份 + API Key（Hash 存储）</li>
+          <li><em>APIIdempotencyRecord</em> — 幂等头保护</li>
+        </ul>
+      </div>
+      <div class="er-card">
+        <div class="er-title">🤖 Agent &amp; 资源绑定（6）</div>
+        <ul>
+          <li><em>AgentProfile</em> — 数字员工画像</li>
+          <li><em>AgentUsage</em> — 使用统计</li>
+          <li><em>AgentModelBinding</em> — Agent → ModelConfig</li>
+          <li><em>AgentResourceBinding</em> — Agent → Skill/Knowledge/Tool</li>
+          <li><em>ModelConfig</em> — LLM 模型配置（含 protocol 字段）</li>
+          <li><em>PersonaConfig / UIConfig</em> — 租户级配置</li>
+        </ul>
+      </div>
+      <div class="er-card">
+        <div class="er-title">💬 Chat &amp; Session（5）</div>
+        <ul>
+          <li><em>ChatSession</em> — 会话（含 current_turn_id / agent_id / status）</li>
+          <li><em>Message</em> — 消息（role / content_json / turn_id）</li>
+          <li><em>MessageFeedback</em> — 用户反馈（👍/👎/评论）</li>
+          <li><em>HumanHandoffRequest</em> — 人类接管</li>
+          <li><em>SessionAttachments</em>（attachment_store）— 会话附件</li>
+        </ul>
+      </div>
+      <div class="er-card">
+        <div class="er-title">📚 Knowledge Base（8）</div>
+        <ul>
+          <li><em>KnowledgeBase / KnowledgeBaseVersion</em> — 知识库 + 版本</li>
+          <li><em>AgentKnowledgeBranch</em> — Agent 专属知识分支</li>
+          <li><em>KnowledgeDocument</em> — 文档</li>
+          <li><em>KnowledgeBucket</em> — 分桶</li>
+          <li><em>KnowledgeChunk</em> — 分块</li>
+          <li><em>KnowledgeConcept</em> — 概念图谱</li>
+          <li><em>KnowledgeIngestJob</em> — 异步导入作业</li>
+        </ul>
+      </div>
+      <div class="er-card">
+        <div class="er-title">📋 Skill / SOP（6）</div>
+        <ul>
+          <li><em>Skill / SkillVersion</em> — SOP 状态机 + 版本历史</li>
+          <li><em>GeneralSkill</em> — 通用技能（跨 Agent 复用）</li>
+          <li><em>AgentSkillBranch / AgentSkillBranchVersion</em> — Agent 专属 SOP 分支</li>
+          <li><em>SkillFeedback / EvolutionProposal</em> — 反馈闭环 &amp; SOP 演化建议</li>
+        </ul>
+      </div>
+      <div class="er-card">
+        <div class="er-title">🛠️ Tools · MCP · A2A（5）</div>
+        <ul>
+          <li><em>Tool</em> — HTTP 工具（endpoint_url / auth_json / schema）</li>
+          <li><em>MCPServer</em> — MCP Server 配置</li>
+          <li><em>A2ATaskRun / A2ATaskEvent</em> — Codex A2a 执行状态机</li>
+          <li><em>ExternalBusinessTask</em> — 异步 HTTP 业务任务</li>
+          <li><em>MockOrder</em> — 开发测试模拟订单</li>
+        </ul>
+      </div>
+      <div class="er-card">
+        <div class="er-title">📡 Channels · 渠道（10）</div>
+        <ul>
+          <li><em>ChannelBinding</em> — 渠道绑定（wechat/wecom/feishu/dingtalk）</li>
+          <li><em>WeChatKfAccount</em> — 微信客服号</li>
+          <li><em>ChannelBindingAgent / ChannelBindingManager</em> — 绑定的 Agent / 人类管理者</li>
+          <li><em>ChannelIdentity</em> — 渠道用户身份映射</li>
+          <li><em>ChannelConvState</em> — 渠道会话状态</li>
+          <li><em>ChannelInboundEvent</em> — 入站事件日志</li>
+          <li><em>ChannelDelivery</em> — 出站投递（含退避重试）</li>
+          <li><em>ChannelBindCode</em> — 绑定授权码</li>
+        </ul>
+      </div>
+      <div class="er-card">
+        <div class="er-title">👥 Teams · 多 Agent 协作（7）</div>
+        <ul>
+          <li><em>Team</em> — 团队（策略 / 成员列表）</li>
+          <li><em>TeamMember</em> — 团队成员 Agent</li>
+          <li><em>TeamTask / TeamTaskBid</em> — 团队任务 + 竞标</li>
+          <li><em>TeamRun</em> — 团队运行实例</li>
+          <li><em>TeamTaskEvent</em> — 任务事件流</li>
+          <li><em>TeamBlackboardEntry</em> — 团队黑板（共享上下文）</li>
+        </ul>
+      </div>
+      <div class="er-card">
+        <div class="er-title">⚙️ Harness 执行记录（6）</div>
+        <ul>
+          <li><em>HarnessRunRecord</em> — 运行根记录</li>
+          <li><em>HarnessTurnRecord</em> — turn 级记录（phase / trace_json）</li>
+          <li><em>HarnessTaskFrameRecord</em> — task frame 状态机</li>
+          <li><em>HarnessInvocationRecord</em> — tool/skill 调用</li>
+          <li><em>HarnessAgentLoopRecord</em> — step loop</li>
+          <li><em>HarnessSessionLeaseRecord</em> — 会话锁（防并发）</li>
+        </ul>
+      </div>
+      <div class="er-card">
+        <div class="er-title">📅 Scheduled · Memory · Feedback（4）</div>
+        <ul>
+          <li><em>ScheduledTask / ScheduledTaskRun</em> — 定时任务 + 运行记录</li>
+          <li><em>MemoryRecord</em> — 长期记忆（extractor jobs 异步写入）</li>
+          <li><em>APIJob / APIJobEvent</em> — Public API 异步 Job</li>
+          <li><em>APIAuditLog / EventLog</em> — 审计日志</li>
+        </ul>
+      </div>
+      <div class="er-card">
+        <div class="er-title">🌐 Webhook &amp; External（4）</div>
+        <ul>
+          <li><em>WebhookEndpoint / WebhookDelivery</em> — Public API Webhook</li>
+          <li><em>ExternalSessionBinding</em> — 外部会话桥接</li>
+          <li><em>APISOPDraft</em> — Public API SOP 草稿</li>
+          <li><em>AgentEvent</em> — 跨 Agent 事件</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>ID 生成策略</h3>
+    <div style="font-size:12px;color:#475569;background:#fafbfc;border-radius:10px;padding:14px 18px;border:1px solid #f1f5f9;font-family:'SF Mono',Consolas,monospace">
+      new_id(prefix) = f"{prefix}_{uuid4().hex[:16]}" &nbsp;&nbsp;
+      例：user_4a1e2f9c... · apicred_7b3d... · apijob_c921... · a2arun_8f42... · exttask_1903...<br>
+      复合索引 + tenant_id 分区保证多租户隔离；JSON 列存储 flexible payload；SQLite FULLTEXT 用于 Knowledge 全文搜索。
+    </div>
+  </section>
+
+  <!-- 5. 请求处理时序 -->
+  <section>
+    <h2><span class="badge">5</span> 请求处理时序图 · 三条主路径</h2>
+
+    <div class="three-col">
+      <div class="col-card">
+        <h4>路径 A · Web Chat /api/chat/stream</h4>
+        <div class="mmd-box">
+<pre class="mermaid">
+sequenceDiagram
+  participant FE as frontend<br>/useChatSession
+  participant API as chat.py<br>POST /stream
+  participant R as router.py
+  participant P as turn_planner.py
+  participant C as turn_coordinator.py
+  participant H as harness_agent.py
+  participant F as turn_finalizer.py
+  participant DB as SQLite
+
+  FE->>API: POST /stream (session_id, message)
+  API->>R: 意图路由
+  R->>R: 选择 AgentProfile
+  R-->>API: agent_id
+
+  API->>P: prepare_payload + plan
+  P->>P: LLM 生成 TurnPlan JSON
+  P-->>API: plan
+
+  API->>C: orchestrate(plan)
+  C->>C: 编排 Knowledge/Skill/Tool
+  C-->>API: capability_results
+
+  API->>H: invoke(task_frame)
+  H->>H: Harness v3 step loop
+  H-->>API: yield StreamingResponse events
+
+  API->>F: finalize + persist
+  F->>DB: 写 Message + HarnessTurnRecord
+  F-->>API: final response
+
+  API-->>FE: StreamingResponse (SSE)
+</pre>
+        </div>
+      </div>
+      <div class="col-card">
+        <h4>路径 B · IM 渠道入站</h4>
+        <div class="mmd-box">
+<pre class="mermaid">
+sequenceDiagram
+  participant WeChat as 微信服务器
+  participant Adapter as adapters/wechat.py
+  participant Crypto as channels/crypto.py
+  participant Intake as service_intake.py
+  participant Route as service_routing.py
+  participant Core as core/engine
+  participant Outbox as service_outbox.py
+
+  WeChat->>Adapter: 加密消息 (AES-GCM)
+  Adapter->>Crypto: decrypt()
+  Crypto-->>Adapter: 明文 JSON
+
+  Adapter->>Intake: handle_inbound(payload)
+  Intake->>Intake: 幂等检查 + ChannelIdentity 映射
+  Intake-->>Route: Message
+
+  Route->>Route: service_autoroute.py<br>自动路由到默认 Agent
+  Route->>Core: 调用 Turn Pipeline
+
+  Core-->>Outbox: 回复消息
+  Outbox->>Outbox: service_durable_inbox.py<br>持久化 + 退避重试
+  Outbox->>WeChat: HTTP POST 回调
+</pre>
+        </div>
+      </div>
+      <div class="col-card">
+        <h4>路径 C · Public API /public/v1/runs</h4>
+        <div class="mmd-box">
+<pre class="mermaid">
+sequenceDiagram
+  participant Client as Server-to-Server
+  participant Auth as public_api/auth.py
+  participant Idem as public_api/idempotency.py
+  participant Run as public_api/runs.py
+  participant Job as APIJob Worker
+  participant Core as core/engine
+  participant Webhook as public_api/webhooks.py
+
+  Client->>Auth: Authorization: Bearer sk_xxx
+  Auth->>Auth: 查 APICredential<br>Hash 比对 + scopes 检查
+  Auth-->>Client: 401 / 放行
+
+  Client->>Idem: POST /runs (Idempotency-Key)
+  Idem->>Idem: 查 APIIdempotencyRecord
+  alt 已存在
+    Idem-->>Client: 返回缓存结果
+  else 新请求
+    Run->>Job: 创建 APIJob(queued)
+    Job->>Core: 异步执行
+    Core-->>Job: 事件流 + 完成
+    Job->>Webhook: 回调 Client webhook
+    Job->>Job: 更新 APIJob(status=finished)
+  end
+
+  Client->>Run: GET /runs/{id}
+  Run->>Run: 查询 APIJob + APIJobEvent
+  Run-->>Client: 完整状态 + 事件历史
+</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. 安全 & 权限 -->
+  <section>
+    <h2><span class="badge">6</span> 安全 &amp; 权限模型</h2>
+
+    <div class="two-col">
+      <div class="col-card">
+        <h4>六层防护</h4>
+        <div style="font-size:12.5px;color:#475569;line-height:1.8">
+          <b>① 传输层</b>：FastAPI HTTPS（桌面端本地 loopback；生产反代强制 TLS）<br>
+          <b>② 认证</b>：Web JWT（auth.py 签发 + localStorage 存储 + 401 自动 refresh）；API Key（sk_ 前缀 + SHA-256 hash + scopes 列表）<br>
+          <b>③ 租户隔离</b>：所有 SQLModel 实体带 <code>tenant_id</code>，SQLAlchemy session filter 强制注入<br>
+          <b>④ Module Policy</b>：<code>module_policy("agent")</code> 作为 dependency 注入，校验租户是否开启该模块<br>
+          <b>⑤ 渠道加密</b>：微信/企微/飞书/钉钉入站消息 AES-GCM 解密；signature 验证防伪造<br>
+          <b>⑥ 执行沙盒</b>：Harness v3 sandbox.py managed_subprocess.py 限制工具执行权限
+        </div>
+      </div>
+      <div class="col-card">
+        <h4>module_policy 依赖清单</h4>
+        <div class="module-policy-list">
+          <div class="mp-item">agent · general_skill</div>
+          <div class="mp-item">knowledge_base · sop</div>
+          <div class="mp-item">tool · mcp_server</div>
+          <div class="mp-item">model_config · team</div>
+        </div>
+        <h4 style="margin-top:14px">双 API 认证体系</h4>
+        <div style="font-size:12.5px;color:#475569;line-height:1.8">
+          <b>/api/*（前端控制台）</b>：JWT Bearer Token + Cookie，<code>auth.py</code> 负责签发/刷新/校验<br>
+          <b>/public/v1/*（Server-to-Server）</b>：API Key Header（<code>Bearer sk_xxx</code>） + Idempotency-Key Header（防重放），<code>public_api/auth.py</code> 查 <code>api_credentials</code> 表做 scopes 级授权
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    StaffDeck 后端架构可视化文档 · generated 2026-11-02 · based on main branch HEAD · 100+ routes · 75 SQLModel tables
+  </footer>
+
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'default',
+    flowchart: { htmlLabels: true, curve: 'basis', padding: 12 },
+    sequence: { boxMargin: 10, boxPadding: 4 }
+  });
+</script>
+</body>
+</html>
