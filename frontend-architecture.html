@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>StaffDeck 前端架构可视化文档</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 40px 24px;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(135deg, #f0f4ff 0%, #faf5ff 50%, #fff5f7 100%);
+    color: #1e293b;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; }
+
+  /* Cover */
+  .cover {
+    text-align: center;
+    padding: 60px 20px 48px;
+    margin-bottom: 40px;
+  }
+  .cover h1 {
+    font-size: 44px;
+    font-weight: 800;
+    background: linear-gradient(90deg, #6366f1, #ec4899, #f59e0b);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin: 0 0 12px;
+    letter-spacing: 2px;
+  }
+  .cover .sub { color: #64748b; font-size: 16px; }
+  .cover .meta {
+    margin-top: 20px;
+    display: inline-flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    font-size: 13px;
+    color: #475569;
+  }
+  .cover .meta span {
+    background: white;
+    padding: 6px 14px;
+    border-radius: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+
+  /* Section */
+  section {
+    background: white;
+    border-radius: 20px;
+    padding: 32px 36px;
+    margin-bottom: 28px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.05);
+    border: 1px solid rgba(0,0,0,0.04);
+  }
+  h2 {
+    font-size: 24px;
+    font-weight: 800;
+    margin: 0 0 20px;
+    padding-bottom: 12px;
+    border-bottom: 3px solid #f0f4ff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  h2 .badge {
+    background: #6366f1;
+    color: white;
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+  }
+  h3 {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 24px 0 12px;
+    color: #334155;
+  }
+
+  /* Stats bar */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .stat {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 14px;
+    padding: 16px 18px;
+    border: 1px solid rgba(0,0,0,0.04);
+  }
+  .stat .num { font-size: 28px; font-weight: 800; color: #6366f1; }
+  .stat .lbl { font-size: 12px; color: #64748b; margin-top: 4px; }
+
+  /* Route table */
+  .route-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 16px;
+  }
+  .route-table th {
+    background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 700;
+    color: #3730a3;
+    border-radius: 8px 8px 0 0;
+  }
+  .route-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: top;
+  }
+  .route-table tr:last-child td { border-bottom: none; }
+  .route-table tr:hover td { background: #fafbff; }
+  .route-path {
+    font-family: "SF Mono", "JetBrains Mono", monospace;
+    font-size: 12px;
+    background: #f0f4ff;
+    padding: 3px 8px;
+    border-radius: 6px;
+    color: #4f46e5;
+    white-space: nowrap;
+  }
+  .route-tag {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+  .tag-chat { background: #dbeafe; color: #1d4ed8; }
+  .tag-admin { background: #fee2e2; color: #b91c1c; }
+  .tag-dash { background: #fef3c7; color: #b45309; }
+  .tag-route { background: #dcfce7; color: #15803d; }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+    padding: 14px 18px;
+    background: #f8fafc;
+    border-radius: 10px;
+    font-size: 12px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+
+  /* Tree */
+  .tree {
+    font-family: "SF Mono", "JetBrains Mono", monospace;
+    font-size: 13px;
+    line-height: 1.8;
+    background: #fafbfc;
+    padding: 20px 24px;
+    border-radius: 12px;
+    border: 1px solid #f1f5f9;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .tree .dir { color: #6366f1; font-weight: 700; }
+  .tree .file { color: #1e40af; }
+  .tree .sub { color: #64748b; }
+
+  /* Tech grid */
+  .tech-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    margin-top: 16px;
+  }
+  .tech-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 16px 18px;
+  }
+  .tech-card .t-name { font-weight: 800; font-size: 14px; color: #1e293b; margin-bottom: 6px; }
+  .tech-card .t-ver { font-size: 11px; color: #6366f1; font-weight: 600; }
+  .tech-card .t-use { font-size: 12px; color: #64748b; margin-top: 6px; }
+
+  /* Mermaid container */
+  .mmd-box {
+    background: #fafbfc;
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #f1f5f9;
+    margin: 16px 0;
+    overflow-x: auto;
+  }
+
+  /* Architecture two-col */
+  .arch-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 16px;
+  }
+  .arch-col {
+    background: #fafbfc;
+    border-radius: 14px;
+    padding: 20px;
+    border: 1px solid #f1f5f9;
+  }
+  .arch-col h4 {
+    margin: 0 0 12px;
+    font-size: 15px;
+    font-weight: 800;
+    color: #6366f1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .arch-col h4::before {
+    content: "";
+    display: inline-block;
+    width: 4px;
+    height: 16px;
+    background: #6366f1;
+    border-radius: 2px;
+  }
+  @media (max-width: 768px) {
+    .arch-split { grid-template-columns: 1fr; }
+    section { padding: 20px; }
+  }
+
+  footer {
+    text-align: center;
+    padding: 40px 0 20px;
+    color: #94a3b8;
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Cover -->
+  <div class="cover">
+    <h1>StaffDeck 前端架构</h1>
+    <div class="sub">可视化文档 · 路由表 · 组件层级 · Harness Engine Client 库</div>
+    <div class="meta">
+      <span>React 18.3</span>
+      <span>TypeScript 5.7</span>
+      <span>Vite 8</span>
+      <span>Tailwind CSS 4</span>
+      <span>React Router 7</span>
+      <span>Harness Engine · 30+ TS 包</span>
+    </div>
+  </div>
+
+  <!-- ========================================= -->
+  <!-- 0. 技术栈 & 统计 -->
+  <!-- ========================================= -->
+  <section>
+    <h2><span class="badge">0</span> 技术栈 &amp; 规模</h2>
+
+    <div class="stats">
+      <div class="stat"><div class="num">200+</div><div class="lbl">frontend-enterprise 文件</div></div>
+      <div class="stat"><div class="num">120</div><div class="lbl">pages / 组件</div></div>
+      <div class="stat"><div class="num">30+</div><div class="lbl">Harness Engine UI 包</div></div>
+      <div class="stat"><div class="num">40+</div><div class="lbl">前端测试文件</div></div>
+      <div class="stat"><div class="num">200+</div><div class="lbl">Harness client 测试</div></div>
+      <div class="stat"><div class="num">17</div><div class="lbl">业务页面目录</div></div>
+    </div>
+
+    <div class="tech-grid">
+      <div class="tech-card">
+        <div class="t-name">⚛️ React</div>
+        <div class="t-ver">18.3.1</div>
+        <div class="t-use">useState/useEffect/useCallback；useChatSession 等 23 个 lib 工具</div>
+      </div>
+      <div class="tech-card">
+        <div class="t-name">🔀 React Router DOM</div>
+        <div class="t-ver">7.18.1</div>
+        <div class="t-use">BrowserRouter + 嵌套 Route，三域路由：login / workspace / enterprise</div>
+      </div>
+      <div class="tech-card">
+        <div class="t-name">⚡ Vite</div>
+        <div class="t-ver">8.1.5</div>
+        <div class="t-use">@vitejs/plugin-react + vite-plugin-svgr；dev proxy /api → localhost:8000</div>
+      </div>
+      <div class="tech-card">
+        <div class="t-name">🎨 Tailwind CSS</div>
+        <div class="t-ver">4.3.2</div>
+        <div class="t-use">@tailwindcss/vite 原生集成；shadcn 风格 ui/* 原子组件</div>
+      </div>
+      <div class="tech-card">
+        <div class="t-name">📝 TypeScript</div>
+        <div class="t-ver">5.7.2</div>
+        <div class="t-use">严格模式；strict: true；types/index.ts 集中 API 返回类型</div>
+      </div>
+      <div class="tech-card">
+        <div class="t-name">🦜 Vitest</div>
+        <div class="t-ver">4.1.10</div>
+        <div class="t-use">+ Testing Library + jsdom；多套配置（web/e2e/perf/snapshot/stress）</div>
+      </div>
+      <div class="tech-card">
+        <div class="t-name">🐍 FastAPI 后端</div>
+        <div class="t-ver">/api/*</div>
+        <div class="t-use">401 自动 refresh；Polling Backoff 退避；统一 ApiError 类</div>
+      </div>
+      <div class="tech-card">
+        <div class="t-name">🎨 Lucide React</div>
+        <div class="t-ver">1.27.0</div>
+        <div class="t-use">图标库</div>
+      </div>
+      <div class="tech-card">
+        <div class="t-name">🧠 Cytoscape</div>
+        <div class="t-ver">3.34.0</div>
+        <div class="t-use">KnowledgeGraphVisualization 知识图谱</div>
+      </div>
+      <div class="tech-card">
+        <div class="t-name">📡 SSE Streaming</div>
+        <div class="t-use">useChatSession 消费后端 /api/chat SSE 流，idle timeout 心跳保活</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================= -->
+  <!-- 1. 整体分层图 -->
+  <!-- ========================================= -->
+  <section>
+    <h2><span class="badge">1</span> 整体分层架构</h2>
+
+    <div class="arch-split">
+      <div class="arch-col">
+        <h4>frontend-enterprise/（主控制台）</h4>
+        <div class="mmd-box">
+<pre class="mermaid">
+flowchart TB
+  subgraph APP["App.tsx · 应用根（1123 行）"]
+    R["BrowserRouter\n/ BrowserRoutes"]
+    AUTH{auth?}
+    LOGIN["LoginPage"]
+    AUTHD["AuthedApp"]
+    R --> AUTH
+    AUTH -- no --> LOGIN
+    AUTH -- yes --> AUTHD
+  end
+  subgraph AUTHSHELL["AuthedApp Shell"]
+    W0["/ → workspace/gallery"]
+    W1["/workspace/*"]
+    E0["/enterprise/*"]
+    W0 --> W1
+    W0 --> E0
+  end
+  AUTHD --> AUTHSHELL
+  style APP fill:#e0e7ff,stroke:#6366f1,stroke-width:2px
+  style AUTHSHELL fill:#dbeafe,stroke:#3b82f6,stroke-width:2px
+</pre>
+        </div>
+      </div>
+      <div class="arch-col">
+        <h4>双层前端关系</h4>
+        <div class="mmd-box">
+<pre class="mermaid">
+flowchart TB
+  subgraph FE["frontend-enterprise/"]
+    F1["App.tsx + 17 pages"]
+    F2["components/ 36 业务组件"]
+    F3["ui/* 21 shadcn 原子"]
+    F4["lib/ 23 工具"]
+  end
+  subgraph HE["harness-engine/packages/client/"]
+    H1["ui-chat · ui-conversation"]
+    H2["ui-tool · ui-primitives"]
+    H3["ui-trajectory · ui-sidebar"]
+    H4["ui-goal · ui-plan · ui-permission"]
+    H5["connection · store · locale"]
+    H6["ui-attachment · ui-subagent"]
+    H7["...共 30+ pnpm 包"]
+  end
+  F1 -- 消费 API --> HE
+  style FE fill:#e0e7ff,stroke:#6366f1,stroke-width:2px
+  style HE fill:#fae8ff,stroke:#c026d3,stroke-width:2px
+</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================= -->
+  <!-- 2. 路由表 -->
+  <!-- ========================================= -->
+  <section>
+    <h2><span class="badge">2</span> 完整路由表</h2>
+
+    <div class="legend">
+      <div class="legend-item"><span class="legend-dot" style="background:#dbeafe"></span> Chat 域</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#fee2e2"></span> Admin Only</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#fef3c7"></span> Dashboard/工作台</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#dcfce7"></span> 通用资源管理</div>
+    </div>
+
+    <table class="route-table">
+      <thead><tr>
+        <th style="width:22%">Route Path</th>
+        <th style="width:10%">Tag</th>
+        <th>Page Component</th>
+        <th>说明</th>
+      </tr></thead>
+      <tbody>
+        <tr><td><code class="route-path">/</code></td><td><span class="route-tag tag-route">重定向</span></td><td colspan="2">→ /workspace/gallery</td></tr>
+        <tr><td><code class="route-path">/login</code></td><td><span class="route-tag tag-route">入口</span></td><td>LoginPage</td><td>账号密码登录，刷新后保持会话</td></tr>
+
+        <tr><td colspan="4" style="background:#f8fafc;font-weight:700;color:#374151">🟦 /workspace · 聊天域</td></tr>
+        <tr><td><code class="route-path">/workspace/gallery</code></td><td><span class="route-tag tag-chat">Chat</span></td><td>ChatGalleryPage</td><td>员工广场 —— 选一个数字员工开始聊</td></tr>
+        <tr><td><code class="route-path">/workspace/chat</code></td><td><span class="route-tag tag-chat">Chat</span></td><td>ChatPage</td><td>空白新会话（根据 selectedAgentId）</td></tr>
+        <tr><td><code class="route-path">/workspace/chat/draft/:agentId</code></td><td><span class="route-tag tag-chat">Chat</span></td><td>ChatPage</td><td>草稿模式，锁定某个 agent</td></tr>
+        <tr><td><code class="route-path">/workspace/chat/:sessionId</code></td><td><span class="route-tag tag-chat">Chat</span></td><td>ChatPage</td><td>进入已存会话，订阅 SSE 事件流</td></tr>
+
+        <tr><td colspan="4" style="background:#f8fafc;font-weight:700;color:#374151">⬛ /enterprise · 控制台 Shell（带 AppSidebar）</td></tr>
+
+        <tr><td><code class="route-path">/enterprise</code></td><td><span class="route-tag tag-route">重定向</span></td><td colspan="2">→ /enterprise/dashboard</td></tr>
+
+        <tr><td><code class="route-path">/enterprise/dashboard</code></td><td><span class="route-tag tag-dash">工作台</span></td><td>DashboardPage</td><td>个人工作台 · WorkRecord · Memories · Logs · Scheduled</td></tr>
+        <tr><td><code class="route-path">/enterprise/agents</code></td><td><span class="route-tag tag-admin">Agent 管理</span></td><td>AgentsPage</td><td>数字员工列表，支持复制/空白两种创建模式</td></tr>
+        <tr><td><code class="route-path">/enterprise/teams</code></td><td><span class="route-tag tag-admin">Teams</span></td><td>TeamsPage</td><td>多 Agent 协作团队列表</td></tr>
+        <tr><td><code class="route-path">/enterprise/teams/:teamId</code></td><td><span class="route-tag tag-admin">Teams</span></td><td>TeamDetailPage</td><td>团队详情 / bidding arena</td></tr>
+        <tr><td><code class="route-path">/enterprise/teams/:teamId/chat</code></td><td><span class="route-tag tag-chat">Chat</span></td><td>TeamChatPage</td><td>团队群聊（多员工协作）</td></tr>
+        <tr><td><code class="route-path">/enterprise/knowledge</code></td><td><span class="route-tag tag-admin">资源</span></td><td>KnowledgeManagePage</td><td>知识库列表 + 文档上传 + 进度追踪</td></tr>
+        <tr><td><code class="route-path">/enterprise/knowledge/new</code></td><td><span class="route-tag tag-admin">资源</span></td><td>KnowledgeAddPage</td><td>新建知识库</td></tr>
+        <tr><td><code class="route-path">/enterprise/skills</code></td><td><span class="route-tag tag-admin">资源</span></td><td>SkillsPage</td><td>SOP 状态机列表（Skill 是 SOP 的 DB 名）</td></tr>
+        <tr><td><code class="route-path">/enterprise/skills/distill</code></td><td><span class="route-tag tag-admin">资源</span></td><td>DistillPage</td><td>自然语言蒸馏 SOP（带 searchParams，persistent）</td></tr>
+        <tr><td><code class="route-path">/enterprise/general-skills</code></td><td><span class="route-tag tag-admin">资源</span></td><td>GeneralSkillsPage</td><td>通用技能列表</td></tr>
+        <tr><td><code class="route-path">/enterprise/general-skills/new</code></td><td><span class="route-tag tag-admin">资源</span></td><td>GeneralSkillNewPage</td><td>新建通用技能</td></tr>
+        <tr><td><code class="route-path">/enterprise/general-skills/:slug/edit</code></td><td><span class="route-tag tag-admin">资源</span></td><td>GeneralSkillEditPage</td><td>编辑通用技能</td></tr>
+        <tr><td><code class="route-path">/enterprise/tools</code></td><td><span class="route-tag tag-admin">资源</span></td><td>ToolsPage</td><td>工具列表（HTTP + MCP Server）</td></tr>
+        <tr><td><code class="route-path">/enterprise/tools/new</code></td><td><span class="route-tag tag-admin">资源</span></td><td>ToolNewPage</td><td>新建 HTTP 工具</td></tr>
+        <tr><td><code class="route-path">/enterprise/tools/mcp/new</code></td><td><span class="route-tag tag-admin">资源</span></td><td>McpServerNewPage</td><td>新建 MCP Server</td></tr>
+        <tr><td><code class="route-path">/enterprise/tools/mcp/:serverId/edit</code></td><td><span class="route-tag tag-admin">资源</span></td><td>McpServerEditPage</td><td>编辑 MCP Server</td></tr>
+        <tr><td><code class="route-path">/enterprise/tools/:toolId/edit</code></td><td><span class="route-tag tag-admin">资源</span></td><td>ToolEditPage</td><td>编辑工具</td></tr>
+        <tr><td><code class="route-path">/enterprise/tools/:toolId/test</code></td><td><span class="route-tag tag-admin">资源</span></td><td>ToolTestPage</td><td>工具测试沙盒</td></tr>
+        <tr><td><code class="route-path">/enterprise/scheduled-tasks</code></td><td><span class="route-tag tag-dash">工作台</span></td><td>DashboardPage(tab=scheduled)</td><td>定时任务列表</td></tr>
+        <tr><td><code class="route-path">/enterprise/scheduled-tasks/new</code></td><td><span class="route-tag tag-dash">工作台</span></td><td>ScheduledTaskNewPage</td><td>新建定时任务</td></tr>
+        <tr><td><code class="route-path">/enterprise/scheduled-tasks/:taskId/edit</code></td><td><span class="route-tag tag-dash">工作台</span></td><td>ScheduledTaskEditPage</td><td>编辑定时任务</td></tr>
+        <tr><td><code class="route-path">/enterprise/memories</code></td><td><span class="route-tag tag-dash">工作台</span></td><td>DashboardPage(tab=memories)</td><td>长期记忆面板</td></tr>
+        <tr><td><code class="route-path">/enterprise/feedback</code></td><td><span class="route-tag tag-dash">工作台</span></td><td>DashboardPage(tab=logs)</td><td>反馈日志面板</td></tr>
+        <tr><td><code class="route-path">/enterprise/channels</code></td><td><span class="route-tag tag-admin">渠道</span></td><td>ChannelsPage</td><td>渠道绑定管理 —— WechatSetup / Wecom / Feishu / DingTalk / BindingManagers</td></tr>
+        <tr><td><code class="route-path">/enterprise/platform[+/:kind]</code></td><td><span class="route-tag tag-dash">广场</span></td><td>OpenPlatformPage</td><td>开放广场 · PlatformEmployeeCard / PlatformResourceCard</td></tr>
+        <tr><td><code class="route-path">/enterprise/persona</code></td><td><span class="route-tag tag-dash">实验</span></td><td>PersonaPage</td><td>Persona 试验页面</td></tr>
+        <tr><td><code class="route-path">/enterprise/accounts</code></td><td><span class="route-tag tag-admin">Admin</span></td><td>AccountsPage</td><td>账号管理（admin only，否则 → gallery）</td></tr>
+        <tr><td><code class="route-path">/enterprise/models</code></td><td><span class="route-tag tag-admin">Admin</span></td><td>ModelsPage</td><td>模型配置（admin only）</td></tr>
+        <tr><td><code class="route-path">/enterprise/runtime-settings</code></td><td><span class="route-tag tag-admin">Admin</span></td><td>RuntimeSettingsPage</td><td>运行时设置（admin only）</td></tr>
+        <tr><td><code class="route-path">/*</code></td><td><span class="route-tag tag-route">兜底</span></td><td colspan="2">→ /enterprise/dashboard</td></tr>
+      </tbody>
+    </table>
+
+    <h3>路由决策树</h3>
+    <div class="mmd-box">
+<pre class="mermaid">
+flowchart TD
+  START["App 入口"] --> AUTH{"auth.token 存在?"}
+  AUTH -- no --> LOGIN["/login LoginPage"]
+  AUTH -- yes --> LOC["useLocation 路径判断"]
+  LOC -- "/" --> RED1["→ /workspace/gallery"]
+  LOC -- "/chat*" | "/enterprise/chat*" --> RED2["→ workspace 对应路由"]
+  LOC -- "/workspace/*" --> WSPACE["Chat 域 Routes"]
+  LOC -- "/enterprise/admin*" --> ADMIN{"isAdmin?"}
+  ADMIN -- yes --> ADPAGE["AdminPage"]
+  ADMIN -- no --> RED3["→ /enterprise/dashboard"]
+  LOC -- "/enterprise/*" --> SHELL["AppSidebar Shell"]
+
+  subgraph WSC
+    WSPACE --> WS1["/workspace/gallery 员工广场"]
+    WSPACE --> WS2["/workspace/chat/:id 聊天页"]
+  end
+  subgraph ESH
+    SHELL --> E1["dashboard · 工作台"]
+    SHELL --> E2["agents · 员工管理"]
+    SHELL --> E3["teams · 多 Agent 协作"]
+    SHELL --> E4["knowledge · 知识库"]
+    SHELL --> E5["skills · SOP 列表"]
+    SHELL --> E6["skills/distill · 蒸馏"]
+    SHELL --> E7["general-skills · 通用技能"]
+    SHELL --> E8["tools · 工具 + MCP"]
+    SHELL --> E9["scheduled-tasks · 定时"]
+    SHELL --> E10["channels · 渠道绑定"]
+    SHELL --> E11["platform · 开放广场"]
+    SHELL --> E12["models / accounts / runtime-settings（admin only）"]
+  end
+</pre>
+    </div>
+  </section>
+
+  <!-- ========================================= -->
+  <!-- 3. 组件层级 -->
+  <!-- ========================================= -->
+  <section>
+    <h2><span class="badge">3</span> 组件层级树</h2>
+
+    <h3>frontend-enterprise/src 完整目录树（含组件/页面数量）</h3>
+    <div class="tree"><span class="dir">frontend-enterprise/src/</span>
+├── <span class="dir">App.tsx</span>            ← 应用根（BrowserRouter + 路由表 + Agent 创建弹窗）
+├── <span class="dir">main.tsx</span>          ← 入口（ReactDOM + I18nProvider + StrictMode）
+├── <span class="dir">auth.ts</span>            ← EnterpriseAuthSession（localStorage token）
+├── <span class="dir">employee.ts</span>        ← Agent Profile 工具（displayName, preferred...）
+├── <span class="dir">api/</span>
+│   ├── <span class="file">client.ts</span>     ← 统一 fetch + 401 refresh + PollingBackoff
+│   ├── <span class="file">read-backoff.ts</span>
+│   ├── <span class="file">harness.ts</span>
+│   ├── <span class="file">model-catalog.ts</span>
+│   └── <span class="file">employee-directory.ts</span>
+├── <span class="dir">types/</span>
+│   └── <span class="file">index.ts</span>      ← 集中 API 返回类型（AgentRead / ChatSession / SOP / KB...）
+├── <span class="dir">i18n/</span>
+│   └── <span class="file">index.tsx</span>     ← I18nProvider（en.json 字典 + WeakMap 缓存）
+├── <span class="dir">enums/</span>
+│   └── <span class="file">routes.ts</span>     ← EnterpriseRoute 枚举
+├── <span class="dir">lib/</span>               ← 23 工具模块
+│   ├── agent-scope-storage.ts  tenant 级 agent 选择持久化
+│   ├── app-path.ts              APP_BASE / VITE_API_BASE_URL
+│   ├── enterprise-ui.ts         UI 样式常量
+│   ├── timezone.ts              浏览器时区 → 后端
+│   ├── clipboard.ts             Composer 粘贴图片
+│   ├── apiErrorMessages.ts     统一错误消息
+│   ├── harnessLog.ts            Harness 执行日志解析
+│   └── ...
+├── <span class="dir">components/</span>        ← 36 业务组件
+│   ├── AppSidebar.tsx           侧边栏导航 + Agent Scope 切换
+│   ├── AppHeader.tsx            顶部栏
+│   ├── EmployeeCard.tsx         数字员工卡片
+│   ├── EmployeeAvatar.tsx       头像（data_url 内联）
+│   ├── EmployeeAvatarEditor.tsx
+│   ├── EmployeeProfileEditor.tsx
+│   ├── DataTable.tsx            通用表格
+│   ├── StatCard.tsx             统计卡片
+│   ├── BiddingArena.tsx         团队任务分派
+│   ├── KnowledgeGraphCanvas.tsx Cytoscape 知识图谱
+│   ├── CapabilityScopeControl.tsx
+│   ├── OnboardingGuide.tsx      首次引导
+│   ├── QuickStartGuide.tsx
+│   ├── UpdateReminder.tsx       版本更新提醒
+│   ├── ConfirmDialog.tsx / SearchableSelect.tsx / Paginator.tsx
+│   ├── <span class="dir">knowledge/</span>   (4 files) KnowledgeGraphVisualization
+│   ├── <span class="dir">openPlatform/</span> (8 files) PlatformEmployeeCard / PlatformResourceCard / PlatformColumn
+│   └── <span class="dir">ui/</span>          ← 21 shadcn 原子组件
+│       ├── sidebar.tsx  dialog.tsx  sonner.tsx  toast.tsx
+│       ├── dropdown-menu.tsx  tabs.tsx  accordion.tsx
+│       ├── button.tsx  input.tsx  textarea.tsx  label.tsx
+│       ├── badge.tsx  skeleton.tsx  progress.tsx  alert.tsx
+│       ├── tooltip.tsx  popover.tsx  hover-card.tsx
+│       ├── pagination.tsx  checkbox.tsx  switch.tsx  radio-group.tsx
+│       ├── separator.tsx  app-toast.tsx
+└── <span class="dir">pages/</span>             ← 41 主页面
+    ├── LoginPage.tsx
+    ├── EmployeeGalleryPage.tsx              员工广场
+    ├── AgentsPage.tsx                       员工管理（AdminPage）
+    ├── DashboardPage.tsx                    个人工作台（多 tab）
+    ├── ChannelsPage.tsx + <span class="dir">channels/</span> WechatSetup WecomSetup FeishuSetup DingTalkSetup
+    ├── SkillsPage.tsx + DistillPage.tsx     SOP 列表 + 蒸馏
+    ├── GeneralSkillsPage.tsx                通用技能 CRUD
+    ├── ToolsPage.tsx                        HTTP 工具 + MCP Server CRUD + 测试
+    ├── KnowledgePage.tsx                    知识库
+    ├── AccountsPage.tsx · ModelsPage.tsx · RuntimeSettingsPage.tsx  (admin only)
+    ├── TracesPage.tsx · PersonaPage.tsx · DebugPage.tsx · TutorialPage.tsx
+    ├── TeamsPage.tsx · TeamDetailPage.tsx · TeamChatPage.tsx
+    ├── ScheduledTaskEditorPage.tsx + <span class="dir">scheduled-tasks/</span>
+    ├── <span class="dir">chat/</span>        ← 聊天核心
+    │   ├── ChatPage.tsx / ChatGalleryPage.tsx
+    │   ├── useChatSession.ts                ← 最复杂 hook：SSE + 心跳 + 恢复
+    │   ├── slashCommands.ts                 /帮助 /切换 /当前 /绑定
+    │   ├── chatHelpers.tsx / chatTypes.ts / chatPageStyles.ts
+    │   └── <span class="dir">components/</span>  20 子组件
+    │       ├── MessageBubble.tsx            消息气泡（含 tool_call / citation）
+    │       ├── MessageList.tsx               消息列表 + 虚拟滚动
+    │       ├── Composer.tsx                  输入框（图片粘贴、文件上传）
+    │       ├── ExecutionRecord.tsx           右侧执行记录（trace 时间线）
+    │       ├── KnowledgeCitationList.tsx     知识引用展开
+    │       ├── ChatHeader.tsx / ChatEmptyState.tsx
+    │       ├── TeamCollaborationPanel.tsx    多 Agent 面板
+    │       ├── ScheduledDraftCard.tsx        定时草稿卡片
+    │       ├── HarnessArtifactDownloads.tsx   Harness 产物下载
+    │       └── MCPAppView.tsx / ModelSetupDialog.tsx / SlashCommandChip.tsx
+    └── <span class="dir">dashboard/</span>
+        ├── ConversationLogsTab.tsx
+        ├── MemoriesTab.tsx
+        ├── ScheduledTasksTab.tsx
+        ├── EvolutionPanel.tsx · WorkRecordTab.tsx
+</div>
+
+    <h3>chat/ 模块组件依赖图</h3>
+    <div class="mmd-box">
+<pre class="mermaid">
+flowchart TB
+  CP["ChatPage.tsx<br>主聊天页"] --> UCS{"useChatSession()"}
+  UCS -->|订阅| SSE["/api/chat SSE Stream"]
+  UCS -->|管理| STATE{Chat Session State}
+  CP --> ML["MessageList"]
+  CP --> CB["Composer"]
+  CP --> ER["ExecutionRecord"]
+  CP --> CH["ChatHeader"]
+  CP --> CS["ChatSidebar"]
+  CS --> CTD["ChatDraftList"]
+
+  MB["MessageBubble"] --> KC["KnowledgeCitationList"]
+  MB --> TC["ToolCallTree"]
+  MB --> CTA["CitationAnchor"]
+  ML --> MB
+
+  ER --> TP["Turn Trace Timeline"]
+  ER --> ST["Skill / SOP Progress"]
+  ER --> TO["Tool Call Details"]
+
+  CB --> SCM["SlashCommandMenu"]
+  CB --> AT["AttachmentUpload"]
+  CB --> SF["StreamingFeedback"]
+
+  STATE --> HIST["history[]<br>message + trace"]
+  STATE --> CUR["turnState<br>running / awaiting_user / handoff"]
+  STATE --> DRAFT["draftQueue[]"]
+  STATE --> CITATIONS["citations{}"]
+</pre>
+    </div>
+  </section>
+
+  <!-- ========================================= -->
+  <!-- 4. 状态流 -->
+  <!-- ========================================= -->
+  <section>
+    <h2><span class="badge">4</span> 状态管理 &amp; 数据流</h2>
+
+    <div class="arch-split">
+      <div class="arch-col">
+        <h4>App.tsx State</h4>
+        <div class="mmd-box">
+<pre class="mermaid">
+stateDiagram-v2
+  [*] --> Unloaded
+  Unloaded --> Loaded: useEffect 加载 agent + team + models
+  Loaded --> CreatingAgent: openCreateAgentModal()
+  CreatingAgent --> Loaded: save / cancel
+  Loaded --> RefreshScope: window 事件
+  RefreshScope --> Loaded
+
+  state LocalStorage {
+    direction LR
+    AGENT_KEY["ENTERPRISE_AGENT_STORAGE_KEY<br>当前 agent id"]
+    SB_KEY["ENTERPRISE_SIDEBAR_STORAGE_KEY<br>侧边栏展开"]
+    AUTH_KEY["ENTERPRISE_AUTH_SESSION<br>token + user"]
+  }
+</pre>
+        </div>
+      </div>
+      <div class="arch-col">
+        <h4>useChatSession SSE 事件流</h4>
+        <div class="mmd-box">
+<pre class="mermaid">
+sequenceDiagram
+  participant UI as MessageList
+  participant Hook as useChatSession
+  participant SSE as /api/chat SSE
+  participant API as api client
+
+  UI->>Hook: submit(message)
+  Hook->>API: POST /messages → 立即返回
+  API-->>Hook: {session_id, turn_id}
+  Hook->>Hook: setTurnState("running")
+
+  loop SSE 事件流
+    SSE->>Hook: event: message
+    Hook->>UI: setMessages(append)
+    SSE->>Hook: event: knowledge_citation
+    Hook->>Hook: citations[turn_id] = list
+    SSE->>Hook: event: trace (phase)
+    Hook->>UI: ExecutionRecord 进度更新
+    SSE->>Hook: event: awaiting_user
+    Hook->>Hook: setTurnState("awaiting_user")
+    SSE->>Hook: event: finish
+    Hook->>Hook: setTurnState("completed")
+  end
+</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================= -->
+  <!-- 5. Harness Engine Client 包 -->
+  <!-- ========================================= -->
+  <section>
+    <h2><span class="badge">5</span> Harness Engine · Client 包一览（30+ pnpm 包）</h2>
+
+    <h3>核心 UI 包</h3>
+    <table class="route-table">
+      <thead><tr>
+        <th>包名</th>
+        <th>职责</th>
+        <th>典型导出 / 组件</th>
+        <th>测试文件</th>
+      </tr></thead>
+      <tbody>
+        <tr><td><code>ui-chat</code></td><td>聊天主视图容器</td><td>event-projection · tool-call-tree · reasoning-row · turn-metrics</td><td>20 .client.spec.ts</td></tr>
+        <tr><td><code>ui-conversation</code></td><td>会话管理 &amp; 输入</td><td>LexicalEditor · input-bar · submit-machine · queue-dock · conversation-registry</td><td>30+ .client.spec.ts</td></tr>
+        <tr><td><code>ui-tool</code></td><td>工具渲染</td><td>terminal-card · web-card · diff-card · search-card · read-card · todo-row · ask-question-row</td><td>15 .client.spec.ts</td></tr>
+        <tr><td><code>ui-primitives</code></td><td>基础原子组件</td><td>Button · Modal · Toast · Input · StateDot · TerminalBlock · JsonTree · DiffBlock</td><td>30+ .client.spec.ts</td></tr>
+        <tr><td><code>ui-trajectory</code></td><td>执行轨迹</td><td>虚拟滚动表格 · event-projection · cell 布局</td><td>10 .client.spec.ts</td></tr>
+        <tr><td><code>ui-sidebar</code></td><td>侧边栏</td><td>SidebarRoot（CSS Module 完整快照测试）</td><td>7 .client.spec.tsx + .snap</td></tr>
+        <tr><td><code>ui-attachment</code></td><td>附件</td><td>AttachmentRail · DropOverlay · ImageLightbox · MessageImage</td><td>7 .client.spec.tsx</td></tr>
+        <tr><td><code>ui-goal</code></td><td>Goal 模式</td><td>goalbar · goal-command-input</td><td>3 .client.spec.tsx</td></tr>
+        <tr><td><code>ui-plan</code></td><td>Plan 模式</td><td>plan-mode-control</td><td>1 .client.spec.tsx</td></tr>
+        <tr><td><code>ui-permission-presets</code></td><td>权限预设</td><td>PermissionRow · settings-store</td><td>2 .client.spec.tsx</td></tr>
+        <tr><td><code>ui-subagent</code></td><td>子 Agent 谱系</td><td>SubagentHeaderLineage</td><td>2 .client.spec.tsx</td></tr>
+        <tr><td><code>ui-settings-*</code> (4)</td><td>设置页合集</td><td>general / models / plugins / plugin-inventory</td><td>12 .client.spec.tsx</td></tr>
+        <tr><td><code>ui-brand-official</code></td><td>官方品牌主题</td><td>boot 时注入品牌</td><td>1 .client.spec.tsx</td></tr>
+        <tr><td><code>connection</code></td><td>HTTP + RPC</td><td>api.ts · rpc.ts · http-bridge.ts · rpc-host.ts</td><td>15 .spec.ts</td></tr>
+        <tr><td><code>store</code></td><td>状态管理合约</td><td>contract.ts</td><td>2 .spec.ts</td></tr>
+        <tr><td><code>locale</code></td><td>国际化</td><td>en/zh 字典 + LanguageRow.tsx + settings-store</td><td>7 .spec.ts</td></tr>
+      </tbody>
+    </table>
+
+    <h3>设计模式</h3>
+    <div class="mmd-box">
+<pre class="mermaid">
+flowchart LR
+  subgraph pkg["每个 pnpm 包"]
+    SRC["src/<br>index.ts<br>*.tsx<br>*.module.css<br>invariant.ts"]
+    CFG["package.json<br>tsconfig.client.json<br>tsconfig.host.json<br>tsdown.config.ts"]
+    TST["tests/<br>*.client.spec.tsx<br>*.host.spec.tsx"]
+    DOC["README.zh.md<br>README.en.md"]
+  end
+
+  subgraph tooling["构建工具"]
+    TC["tsc -b tsconfig.client.json<br>+ tsdown --env.DSH_BUILD_FACE client"]
+    TH["tsc -b tsconfig.host.json<br>+ tsdown --env.DSH_BUILD_FACE host"]
+  end
+
+  SRC --> TC
+  SRC --> TH
+  TST --> TC
+  TST --> TH
+
+  subgraph output["产物"]
+    LIB["lib/client/  (浏览器)"]
+    HIB["lib/host/    (Node)"]
+  end
+  TC --> LIB
+  TH --> HIB
+
+  style SRC fill:#dbeafe,stroke:#3b82f6,stroke-width:1px
+  style CFG fill:#fef3c7,stroke:#f59e0b,stroke-width:1px
+  style TST fill:#fae8ff,stroke:#c026d3,stroke-width:1px
+  style DOC fill:#dcfce7,stroke:#22c55e,stroke-width:1px
+  style output fill:#fee2e2,stroke:#ef4444,stroke-width:1px
+</pre>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    StaffDeck 前端架构可视化文档 · generated 2026-11-02 · based on main branch HEAD
+  </footer>
+
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'default',
+    flowchart: { htmlLabels: true, curve: 'basis', padding: 12 },
+    sequence: { boxMargin: 12, boxPadding: 6 }
+  });
+</script>
+</body>
+</html>

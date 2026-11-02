@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>StaffDeck 系统架构 · 卡通详解版</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, sans-serif;
+    background:
+      radial-gradient(circle at 10% 10%, #e0f2fe 0%, transparent 40%),
+      radial-gradient(circle at 90% 90%, #fce7f3 0%, transparent 40%),
+      #fafafa;
+    padding: 40px 20px;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+  h1 {
+    text-align: center;
+    font-size: 38px;
+    font-weight: 800;
+    background: linear-gradient(90deg, #6366f1, #ec4899, #f59e0b);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+  h1::after {
+    content: "⚡";
+    display: inline-block;
+    margin-left: 12px;
+    -webkit-text-fill-color: #f59e0b;
+    animation: wiggle 2s ease-in-out infinite;
+  }
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(-8deg); }
+    50% { transform: rotate(8deg); }
+  }
+  .sub { text-align: center; color: #94a3b8; margin-bottom: 36px; font-size: 14px; }
+
+  /* ===== Layer box ===== */
+  .layer {
+    position: relative;
+    border-radius: 20px;
+    padding: 18px 24px 22px;
+    margin-bottom: 14px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    border: 2px solid rgba(0,0,0,0.06);
+  }
+  .layer-title {
+    position: absolute;
+    top: -18px;
+    left: 20px;
+    background: white;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  .layer-num {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    color: white;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  /* ===== Layer colors ===== */
+  .L1 { background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%); }
+  .L1 .layer-num { background: #6366f1; }
+
+  .L2 { background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); }
+  .L2 .layer-num { background: #3b82f6; }
+
+  .L3 { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); }
+  .L3 .layer-num { background: #f59e0b; }
+
+  .L4 { background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); padding-top: 32px; }
+  .L4 .layer-num { background: #22c55e; }
+
+  .L5 { background: linear-gradient(135deg, #fae8ff 0%, #f5d0fe 100%); }
+  .L5 .layer-num { background: #c026d3; }
+
+  .L6 { background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); }
+  .L6 .layer-num { background: #ef4444; }
+
+  .L7 { background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); }
+  .L7 .layer-num { background: #6b7280; }
+
+  /* ===== Content row ===== */
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: center; }
+  .row.baseline { justify-content: flex-start; align-items: flex-start; }
+
+  /* ===== Icon pill ===== */
+  .icon-pill {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 14px;
+    background: white;
+    border-radius: 14px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    font-size: 26px;
+    min-width: 64px;
+    border: 1px solid rgba(0,0,0,0.05);
+    transition: transform 0.15s;
+    cursor: default;
+  }
+  .icon-pill:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+  .icon-pill .lbl { font-size: 11px; font-weight: 600; color: #475569; }
+
+  /* ===== Arrow ===== */
+  .arrow-down {
+    display: flex; justify-content: center;
+    margin: 4px 0;
+  }
+  .arrow-down svg { filter: drop-shadow(0 2px 3px rgba(0,0,0,0.1)); }
+
+  .arrow-horizontal { display: inline-flex; align-items: center; padding: 0 2px; }
+
+  /* ===== Big block ===== */
+  .big-block {
+    background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+    color: white;
+    font-size: 22px;
+    font-weight: 800;
+    padding: 20px 48px;
+    border-radius: 16px;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 4px 16px rgba(249,115,22,0.3);
+    border: 2px solid rgba(255,255,255,0.3);
+  }
+
+  /* ===== Turn pipeline (L4) ===== */
+  .pipeline {
+    background: white;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: inset 0 2px 8px rgba(0,0,0,0.04);
+    margin-top: 12px;
+  }
+  .pipeline-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #16a34a;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .pipeline-label::before {
+    content: "🎯";
+  }
+  .pipeline-row { display: flex; align-items: stretch; justify-content: center; gap: 6px; flex-wrap: wrap; }
+
+  .p-box {
+    flex: 1 1 130px;
+    min-width: 110px;
+    background: white;
+    border-radius: 12px;
+    padding: 10px 12px;
+    border: 2px solid;
+    text-align: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    position: relative;
+  }
+  .p-box .p-emoji { font-size: 28px; margin-bottom: 4px; }
+  .p-box .p-name { font-size: 13px; font-weight: 700; color: #0f172a; }
+  .p-box .p-sub { font-size: 10px; color: #64748b; margin-top: 2px; }
+  .p-box.blue   { border-color: #60a5fa; background: #eff6ff; }
+  .p-box.amber  { border-color: #fbbf24; background: #fffbeb; }
+  .p-box.green  { border-color: #4ade80; background: #f0fdf4; }
+  .p-box.violet { border-color: #c084fc; background: #faf5ff; }
+  .p-box.pink   { border-color: #f472b6; background: #fdf2f8; }
+
+  .p-arrow { font-size: 20px; color: #94a3b8; align-self: center; padding: 0 2px; }
+
+  .pipeline-row2 { display: flex; align-items: center; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 10px; }
+  .mini-chip {
+    background: white;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 20px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .mini-chip .e { font-size: 14px; }
+
+  .side-bot {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: white;
+    border-radius: 16px;
+    padding: 12px 18px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  .side-bot .bot { font-size: 48px; }
+  .side-bot .btxt { font-weight: 800; color: #16a34a; font-size: 16px; }
+  .side-bot .bsub { font-size: 11px; color: #64748b; }
+
+  /* ===== Harness v3 packages ===== */
+  .pkg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; margin-top: 8px; }
+  .pkg {
+    background: white;
+    border-radius: 10px;
+    padding: 10px 8px;
+    text-align: center;
+    border: 2px solid #e9d5ff;
+    font-size: 11px;
+    font-weight: 700;
+    color: #6b21a8;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+  }
+  .pkg .pe { font-size: 20px; display: block; margin-bottom: 2px; }
+
+  /* ===== Data tables ===== */
+  .tables-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 4px; }
+  .tbox {
+    background: white;
+    border-radius: 12px;
+    padding: 10px 14px;
+    text-align: center;
+    border: 2px solid;
+    min-width: 100px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  }
+  .tbox .te { font-size: 24px; display: block; margin-bottom: 2px; }
+  .tbox .tn { font-size: 12px; font-weight: 700; }
+  .tbox .ts { font-size: 10px; color: #64748b; display: block; margin-top: 2px; }
+  .tbox.teal   { border-color: #5eead4; background: #f0fdfa; color: #0f766e; }
+  .tbox.blue   { border-color: #93c5fd; background: #eff6ff; color: #1d4ed8; }
+  .tbox.orange { border-color: #fdba74; background: #fff7ed; color: #c2410c; }
+  .tbox.rose   { border-color: #fda4af; background: #fff1f2; color: #be123c; }
+  .tbox.purple { border-color: #c4b5fd; background: #f5f3ff; color: #6d28d9; }
+
+  /* ===== External row ===== */
+  .ext-row { display: flex; justify-content: center; gap: 24px; margin-top: 4px; }
+  .ext {
+    background: white;
+    border-radius: 16px;
+    padding: 16px 28px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 2px dashed #d1d5db;
+  }
+  .ext .ee { font-size: 40px; display: block; }
+  .ext .en { font-size: 14px; font-weight: 800; color: #374151; margin-top: 4px; }
+  .ext .es { font-size: 10px; color: #6b7280; }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 768px) {
+    h1 { font-size: 28px; }
+    .pipeline-row { flex-direction: column; }
+    .p-arrow { transform: rotate(90deg); padding: 4px 0; }
+  }
+
+  .note {
+    text-align: center;
+    margin-top: 24px;
+    font-size: 12px;
+    color: #94a3b8;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>StaffDeck 系统架构</h1>
+  <p class="sub">企业级数字员工平台 · Python FastAPI + TypeScript Harness v3</p>
+
+  <!-- 箭头 -->
+  <div class="arrow-down"><svg width="20" height="24" viewBox="0 0 20 24"><path d="M10 0 L10 18 M4 12 L10 20 L16 12" stroke="#cbd5e1" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+  <!-- ============ ① 接入层 ============ -->
+  <div class="layer L1">
+    <div class="layer-title"><span class="layer-num">1</span>接入层 · Access Layer</div>
+    <div class="row">
+      <div class="icon-pill"><span>🖥️</span><span class="lbl">桌面客户端</span></div>
+      <div class="icon-pill"><span>🌐</span><span class="lbl">Web 浏览器</span></div>
+      <div class="icon-pill"><span>💚</span><span class="lbl">微信</span></div>
+      <div class="icon-pill"><span>💙</span><span class="lbl">企业微信</span></div>
+      <div class="icon-pill"><span>💜</span><span class="lbl">飞书</span></div>
+      <div class="icon-pill"><span>🧡</span><span class="lbl">钉钉</span></div>
+      <div class="icon-pill"><span>⌨️</span><span class="lbl">CLI</span></div>
+      <div class="icon-pill"><span>🔑</span><span class="lbl">Public API</span></div>
+    </div>
+  </div>
+
+  <div class="arrow-down"><svg width="20" height="24" viewBox="0 0 20 24"><path d="M10 0 L10 18 M4 12 L10 20 L16 12" stroke="#93c5fd" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+  <!-- ============ ② 前端 ============ -->
+  <div class="layer L2">
+    <div class="layer-title"><span class="layer-num">2</span>前端 · Frontend (React 18 + Vite 8)</div>
+    <div class="row">
+      <div class="icon-pill" style="min-width:110px; padding:14px 20px;"><span style="font-size:32px">⚛️</span><span class="lbl" style="font-size:12px; margin-top:4px; font-weight:800">React 18</span><span class="lbl">frontend-enterprise/</span></div>
+      <span class="arrow-horizontal" style="color:#3b82f6; font-size:24px;">▶</span>
+      <div class="icon-pill" style="min-width:110px; padding:14px 20px;"><span style="font-size:32px">⚡</span><span class="lbl" style="font-size:12px; margin-top:4px; font-weight:800">Vite 8</span><span class="lbl">Tailwind CSS 4</span></div>
+      <span style="color:#94a3b8; font-size:18px; margin: 0 8px;">+</span>
+      <div class="icon-pill" style="min-width:160px; padding:14px 20px;"><span style="font-size:32px">🎨</span><span class="lbl" style="font-size:12px; margin-top:4px; font-weight:800">Harness Engine UI 包</span><span class="lbl">ui-chat · ui-tool · ui-session ...</span></div>
+    </div>
+  </div>
+
+  <div class="arrow-down"><svg width="20" height="24" viewBox="0 0 20 24"><path d="M10 0 L10 18 M4 12 L10 20 L16 12" stroke="#f59e0b" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+  <!-- ============ ③ 网关 ============ -->
+  <div class="layer L3">
+    <div class="layer-title"><span class="layer-num">3</span>网关 · Gateway (FastAPI 单端口)</div>
+    <div class="row">
+      <div class="big-block">⚡ FastAPI 单端口服务</div>
+    </div>
+    <div class="row" style="margin-top:14px; gap:6px; font-size:12px; color:#92400e; flex-wrap:wrap;">
+      <span style="background:white; border-radius:8px; padding:4px 10px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">📦 静态资源 /static/</span>
+      <span style="background:white; border-radius:8px; padding:4px 10px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">🔌 REST API /api/*</span>
+      <span style="background:white; border-radius:8px; padding:4px 10px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">🌐 Public API /public/api/v1</span>
+      <span style="background:white; border-radius:8px; padding:4px 10px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">📖 Swagger /docs</span>
+      <span style="background:white; border-radius:8px; padding:4px 10px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">📡 SSE Streaming</span>
+    </div>
+  </div>
+
+  <div class="arrow-down"><svg width="20" height="24" viewBox="0 0 20 24"><path d="M10 0 L10 18 M4 12 L10 20 L16 12" stroke="#22c55e" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+  <!-- ============ ④ 后端核心 ============ -->
+  <div class="layer L4">
+    <div class="layer-title"><span class="layer-num">4</span>后端核心 · Backend Core (Python FastAPI)</div>
+
+    <div style="display:flex; gap:12px; align-items:stretch; flex-wrap:wrap;">
+      <!-- Python Bot -->
+      <div class="side-bot" style="flex:0 0 auto; min-width:120px; flex-direction:column; justify-content:center;">
+        <span class="bot">🐍</span>
+        <div>
+          <div class="btxt">Python 3.11+</div>
+          <div class="bsub">Turn Pipeline</div>
+        </div>
+      </div>
+
+      <!-- Turn Pipeline -->
+      <div class="pipeline" style="flex:1 1 560px;">
+        <div class="pipeline-label">Agent 回合引擎 · Turn Pipeline</div>
+        <div class="pipeline-row">
+          <div class="p-box blue"><div class="p-emoji">🧭</div><div class="p-name">Router</div><div class="p-sub">意图路由</div></div>
+          <span class="p-arrow">▶</span>
+          <div class="p-box amber"><div class="p-emoji">📋</div><div class="p-name">TurnPlanner</div><div class="p-sub">回合规划</div></div>
+          <span class="p-arrow">▶</span>
+          <div class="p-box green"><div class="p-emoji">🎛️</div><div class="p-name">TurnCoordinator</div><div class="p-sub">执行协调</div></div>
+          <span class="p-arrow">▶</span>
+          <div class="p-box violet"><div class="p-emoji">🤖</div><div class="p-name">HarnessTaskAgent</div><div class="p-sub">任务执行</div></div>
+          <span class="p-arrow">▶</span>
+          <div class="p-box pink"><div class="p-emoji">✨</div><div class="p-name">TurnFinalizer</div><div class="p-sub">收尾回复</div></div>
+        </div>
+
+        <div class="pipeline-label" style="margin-top:14px; color:#2563eb;">🧩 能力模块 · Capabilities</div>
+        <div class="pipeline-row2">
+          <span class="mini-chip"><span class="e">🧠</span>LLM Client · 4 协议驱动</span>
+          <span class="mini-chip"><span class="e">🔧</span>Tools · MCP / HTTP / A2A</span>
+          <span class="mini-chip"><span class="e">📚</span>Knowledge · OKF 分层检索</span>
+          <span class="mini-chip"><span class="e">📝</span>Skills · SOP 状态机</span>
+          <span class="mini-chip"><span class="e">👥</span>Teams · 多 Agent 协作</span>
+          <span class="mini-chip"><span class="e">⏰</span>Scheduled Tasks</span>
+          <span class="mini-chip"><span class="e">🛡️</span>Security · 多租户权限</span>
+          <span class="mini-chip"><span class="e">💬</span>Channels · 4 渠道适配器</span>
+        </div>
+
+        <div class="pipeline-label" style="margin-top:14px; color:#dc2626;">🔌 LLM 协议抽象 · Protocol Drivers</div>
+        <div class="pipeline-row2">
+          <span class="mini-chip" style="border-color:#10b981; background:#ecfdf5; color:#065f46;"><span class="e">🟢</span>ChatCompletionsDriver</span>
+          <span class="mini-chip" style="border-color:#10b981; background:#ecfdf5; color:#065f46;"><span class="e">🟢</span>OpenAIResponsesDriver</span>
+          <span class="mini-chip" style="border-color:#8b5cf6; background:#f5f3ff; color:#5b21b6;"><span class="e">🟣</span>AnthropicMessagesDriver</span>
+          <span class="mini-chip" style="border-color:#ef4444; background:#fef2f2; color:#991b1b;"><span class="e">🔴</span>GeminiGenerateContentDriver</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-down"><svg width="20" height="24" viewBox="0 0 20 24"><path d="M10 0 L10 18 M4 12 L10 20 L16 12" stroke="#c026d3" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+  <!-- ============ ⑤ Harness v3 ============ -->
+  <div class="layer L5">
+    <div class="layer-title"><span class="layer-num">5</span>Harness v3 · 可插拔运行时 (TypeScript Monorepo · 50+ pnpm 包)</div>
+    <div class="pkg-grid">
+      <div class="pkg"><span class="pe">⚙️</span>core</div>
+      <div class="pkg"><span class="pe">💬</span>session</div>
+      <div class="pkg"><span class="pe">🧠</span>context</div>
+      <div class="pkg"><span class="pe">☁️</span>llm</div>
+      <div class="pkg"><span class="pe">🪣</span>sandbox</div>
+      <div class="pkg"><span class="pe">📝</span>skill</div>
+      <div class="pkg"><span class="pe">🔧</span>tool</div>
+      <div class="pkg"><span class="pe">🔌</span>mcp</div>
+      <div class="pkg"><span class="pe">💾</span>storage</div>
+      <div class="pkg"><span class="pe">📤</span>jobs</div>
+      <div class="pkg"><span class="pe">👍</span>feedback</div>
+      <div class="pkg"><span class="pe">📦</span>sdk</div>
+      <div class="pkg"><span class="pe">📱</span>ui-chat</div>
+      <div class="pkg"><span class="pe">🎯</span>ui-tool</div>
+      <div class="pkg"><span class="pe">📑</span>ui-session</div>
+      <div class="pkg"><span class="pe">🧭</span>ui-plan</div>
+    </div>
+  </div>
+
+  <div class="arrow-down"><svg width="20" height="24" viewBox="0 0 20 24"><path d="M10 0 L10 18 M4 12 L10 20 L16 12" stroke="#ef4444" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+  <!-- ============ ⑥ 数据层 ============ -->
+  <div class="layer L6">
+    <div class="layer-title"><span class="layer-num">6</span>数据层 · Data Layer (SQLModel + SQLite)</div>
+    <div class="tables-row">
+      <div class="tbox teal"><span class="te">🐻</span><div class="tn">SQLite</div><span class="ts">SQLModel / SQLAlchemy</span></div>
+      <div class="tbox blue"><span class="te">👤</span><div class="tn">User</div><span class="ts">多租户</span></div>
+      <div class="tbox blue"><span class="te">🤖</span><div class="tn">Agent</div><span class="ts">数字员工</span></div>
+      <div class="tbox blue"><span class="te">💬</span><div class="tn">ChatSession</div><span class="ts">会话</span></div>
+      <div class="tbox blue"><span class="te">📜</span><div class="tn">SOP / Skill</div><span class="ts">状态机</span></div>
+      <div class="tbox blue"><span class="te">📚</span><div class="tn">KnowledgeBase</div><span class="ts">OKF 索引</span></div>
+      <div class="tbox blue"><span class="te">🔧</span><div class="tn">Tool</div><span class="ts">MCP/HTTP/A2A</span></div>
+      <div class="tbox orange"><span class="te">📱</span><div class="tn">ChannelBinding</div><span class="ts">Fernet 加密</span></div>
+      <div class="tbox purple"><span class="te">🔑</span><div class="tn">APICredential</div><span class="ts">key_digest</span></div>
+      <div class="tbox rose"><span class="te">📦</span><div class="tn">文件存储</div><span class="ts">附件 / 知识库</span></div>
+    </div>
+  </div>
+
+  <div class="arrow-down"><svg width="20" height="24" viewBox="0 0 20 24"><path d="M10 0 L10 18 M4 12 L10 20 L16 12" stroke="#6b7280" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+  <!-- ============ ⑦ 外部依赖 ============ -->
+  <div class="layer L7">
+    <div class="layer-title"><span class="layer-num">7</span>外部依赖 · External Dependencies</div>
+    <div class="ext-row">
+      <div class="ext"><span class="ee">☁️</span><div class="en">LLM API</div><span class="es">OpenAI / Anthropic / Gemini / DeepSeek</span></div>
+      <div class="ext"><span class="ee">🔌</span><div class="en">MCP Servers</div><span class="es">Model Context Protocol</span></div>
+      <div class="ext"><span class="ee">🐙</span><div class="en">Codex A2A</div><span class="es">Agent-to-Agent 远程调用</span></div>
+      <div class="ext"><span class="ee">📤</span><div class="en">HTTP APIs</div><span class="es">业务系统外部对接</span></div>
+    </div>
+  </div>
+
+  <p class="note">© StaffDeck Architecture · Python FastAPI + TypeScript Harness v3 · AGPLv3</p>
+</div>
+</body>
+</html>
